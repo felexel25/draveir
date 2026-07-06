@@ -59,9 +59,19 @@
     cursor: pointer;
   }
   #theme-toggle:hover { border-color: var(--accent); }
-  @media (max-width: 460px) {
-    .brand .mark { letter-spacing: 0.16em; }
-    .site-nav { gap: 1.1rem; }
+  @media (max-width: 600px) {
+    .header-inner {
+      height: auto;
+      min-height: 56px;
+      padding-block: 0.5rem;
+      flex-wrap: wrap;
+      row-gap: 0.4rem;
+    }
+    .brand .mark { font-size: 1.15rem; letter-spacing: 0.14em; }
+    .site-nav { gap: 1rem; font-size: 0.85rem; }
+  }
+  @media (max-width: 360px) {
+    .site-nav { width: 100%; justify-content: space-between; gap: 0.6rem; }
   }
 </style>
 
