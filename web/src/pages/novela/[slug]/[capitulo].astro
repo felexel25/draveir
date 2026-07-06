@@ -3,74 +3,109 @@ import { getCollection, getEntry, type CollectionEntry } from 'astro:content';
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import ChapterNav from '../../../components/ChapterNav.astro';
 import Breadcrumb from '../../../components/Breadcrumb.astro';
+import Countdown from '../../../components/Countdown.astro';
 import { readingTime } from '../../../lib/reading';
 
+type Props =
+  | { kind: 'published'; entry: CollectionEntry<'chapters'> }
+  | { kind: 'locked'; meta: CollectionEntry<'lockedChapters'>['data'] };
+
 export async function getStaticPaths() {
-  const chapters = await getCollection('chapters');
-  return chapters.map((c) => ({
-    params: { slug: c.data.novelSlug, capitulo: c.data.chapterSlug },
-    props: { entry: c },
-  }));
+  const published = await getCollection('chapters');
+  const locked = await getCollection('lockedChapters');
+  return [
+    ...published.map((entry) => ({
+      params: { slug: entry.data.novelSlug, capitulo: entry.data.chapterSlug },
+      props: { kind: 'published', entry } as Props,
+    })),
+    ...locked.map((c) => ({
+      params: { slug: c.data.novelSlug, capitulo: c.data.chapterSlug },
+      props: { kind: 'locked', meta: c.data } as Props,
+    })),
+  ];
 }
 
-interface Props { entry: CollectionEntry<'chapters'>; }
-const { entry } = Astro.props;
+const props = Astro.props as Props;
 const { slug } = Astro.params;
 const novel = await getEntry('novels', slug);
-const { Content } = await entry.render();
+const novelTitle = novel?.data.title ?? 'Novela';
 
-const items = (await getCollection('chapters'))
-  .filter((c) => c.data.novelSlug === slug)
-  .sort((a, b) => a.data.number - b.data.number)
-  .map((c) => ({ chapterSlug: c.data.chapterSlug, title: c.data.title }));
+const pub = (await getCollection('chapters')).filter((c) => c.data.novelSlug === slug);
+const lok = (await getCollection('lockedChapters')).filter((c) => c.data.novelSlug === slug);
+const items = [...pub, ...lok]
+  .map((c) => ({ number: c.data.number, chapterSlug: c.data.chapterSlug, title: c.data.title }))
+  .sort((a, b) => a.number - b.number)
+  .map(({ chapterSlug, title }) => ({ chapterSlug, title }));
 
-const minutes = readingTime(entry.body);
+const title = props.kind === 'published' ? props.entry.data.title : props.meta.title;
+const chapterSlug =
+  props.kind === 'published' ? props.entry.data.chapterSlug : props.meta.chapterSlug;
+const rendered = props.kind === 'published' ? await props.entry.render() : null;
+const minutes = props.kind === 'published' ? readingTime(props.entry.body) : 0;
 ---
 
-<BaseLayout title={`${entry.data.title} — Draveir`}>
-  <div class="reading-progress" id="reading-progress"></div>
+<BaseLayout title={`${title} — Draveir`}>
+  {props.kind === 'published' && <div class="reading-progress" id="reading-progress"></div>}
   <main class="container reading" id="contenido">
     <Breadcrumb items={[
       { label: 'Novelas', href: '/novelas' },
-      { label: novel?.data.title ?? 'Novela', href: `/novela/${slug}` },
-      { label: entry.data.title },
+      { label: novelTitle, href: `/novela/${slug}` },
+      { label: title },
     ]} />
     <div class="reading-top">
-      <ChapterNav novelSlug={slug} current={entry.data.chapterSlug} items={items} />
+      <ChapterNav novelSlug={slug} current={chapterSlug} items={items} />
     </div>
-    <h1>{entry.data.title}</h1>
-    <p class="reading-meta">~{minutes} min de lectura</p>
-    <article><Content /></article>
-    <ChapterNav novelSlug={slug} current={entry.data.chapterSlug} items={items} />
-  </main>
-  <script is:inline>
-    (function () {
-      var bar = document.getElementById('reading-progress');
-      var article = document.querySelector('.reading article');
-      if (!bar || !article) return;
-      function update() {
-        var rect = article.getBoundingClientRect();
-        var total = rect.height - window.innerHeight;
-        var scrolled = Math.min(Math.max(-rect.top, 0), total);
-        bar.style.width = (total > 0 ? (scrolled / total) * 100 : 0) + '%';
-      }
-      document.addEventListener('scroll', update, { passive: true });
-      window.addEventListener('resize', update);
-      update();
-    })();
-  </script>
+    <h1>{title}</h1>
 
-  <script is:inline set:html={`window.__chapter=${JSON.stringify({
-    novelSlug: slug,
-    chapterSlug: entry.data.chapterSlug,
-    title: `${novel?.data.title ?? 'Novela'} · ${entry.data.title}`,
-  })};`}></script>
-  <script>
-    import { parseState, recordRead, READER_KEY } from '../../../lib/reader';
-    const c = (window as any).__chapter;
-    if (c) {
-      const s = recordRead(parseState(localStorage.getItem(READER_KEY)), { ...c, at: Date.now() });
-      localStorage.setItem(READER_KEY, JSON.stringify(s));
-    }
-  </script>
+    {props.kind === 'published' && rendered ? (
+      <Fragment>
+        <p class="reading-meta">~{minutes} min de lectura</p>
+        <article><rendered.Content /></article>
+      </Fragment>
+    ) : (
+      props.kind === 'locked' && (
+        <Countdown novelSlug={slug} chapterSlug={chapterSlug} unlocksAt={props.meta.unlocksAt} />
+      )
+    )}
+
+    <div class="chapter-foot">
+      <ChapterNav novelSlug={slug} current={chapterSlug} items={items} />
+    </div>
+  </main>
+
+  {props.kind === 'published' && (
+    <script is:inline set:html={`window.__chapter=${JSON.stringify({
+      novelSlug: slug,
+      chapterSlug: chapterSlug,
+      title: `${novelTitle} · ${title}`,
+    })};`}></script>
+  )}
+  {props.kind === 'published' && (
+    <Fragment>
+      <script is:inline>
+        (function () {
+          var bar = document.getElementById('reading-progress');
+          var article = document.querySelector('.reading article');
+          if (!bar || !article) return;
+          function update() {
+            var rect = article.getBoundingClientRect();
+            var total = rect.height - window.innerHeight;
+            var scrolled = Math.min(Math.max(-rect.top, 0), total);
+            bar.style.width = (total > 0 ? (scrolled / total) * 100 : 0) + '%';
+          }
+          document.addEventListener('scroll', update, { passive: true });
+          window.addEventListener('resize', update);
+          update();
+        })();
+      </script>
+      <script>
+        import { parseState, recordRead, READER_KEY } from '../../../lib/reader';
+        const c = (window as any).__chapter;
+        if (c) {
+          const s = recordRead(parseState(localStorage.getItem(READER_KEY)), { ...c, at: Date.now() });
+          localStorage.setItem(READER_KEY, JSON.stringify(s));
+        }
+      </script>
+    </Fragment>
+  )}
 </BaseLayout>

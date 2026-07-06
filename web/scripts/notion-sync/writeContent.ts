@@ -1,27 +1,34 @@
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { marked } from 'marked';
 import type { NovelData, ChapterData } from './types';
 
 const CONTENT = join(process.cwd(), 'src', 'content');
 const NOVELS_DIR = join(CONTENT, 'novels');
 const CHAPTERS_DIR = join(CONTENT, 'chapters');
+const LOCKED_DIR = join(CONTENT, 'lockedChapters');
+const KV_BULK = join(process.cwd(), '.kv-bulk.json');
 
 function frontmatter(fields: Record<string, unknown>): string {
   const lines = Object.entries(fields).map(([k, v]) => `${k}: ${JSON.stringify(v)}`);
   return `---\n${lines.join('\n')}\n---\n`;
 }
 
-export async function writeContent(novels: NovelData[], chapters: ChapterData[]): Promise<void> {
-  await rm(NOVELS_DIR, { recursive: true, force: true });
-  await rm(CHAPTERS_DIR, { recursive: true, force: true });
-  await mkdir(NOVELS_DIR, { recursive: true });
-  await mkdir(CHAPTERS_DIR, { recursive: true });
+export async function writeContent(
+  novels: NovelData[],
+  published: ChapterData[],
+  locked: ChapterData[],
+): Promise<void> {
+  for (const dir of [NOVELS_DIR, CHAPTERS_DIR, LOCKED_DIR]) {
+    await rm(dir, { recursive: true, force: true });
+    await mkdir(dir, { recursive: true });
+  }
 
   for (const n of novels) {
     await writeFile(join(NOVELS_DIR, `${n.slug}.json`), JSON.stringify(n, null, 2));
   }
 
-  for (const c of chapters) {
+  for (const c of published) {
     const fm = frontmatter({
       novelSlug: c.novelSlug,
       number: c.number,
@@ -29,7 +36,28 @@ export async function writeContent(novels: NovelData[], chapters: ChapterData[])
       chapterSlug: c.chapterSlug,
       publishedAt: c.publishedAt,
     });
-    const file = join(CHAPTERS_DIR, `${c.novelSlug}--${c.chapterSlug}.md`);
-    await writeFile(file, `${fm}\n${c.bodyMarkdown}\n`);
+    await writeFile(join(CHAPTERS_DIR, `${c.novelSlug}--${c.chapterSlug}.md`), `${fm}\n${c.bodyMarkdown}\n`);
   }
+
+  // Bloqueados: metadatos al sitio (para la cuenta regresiva, SIN texto)…
+  for (const c of locked) {
+    const meta = {
+      novelSlug: c.novelSlug,
+      number: c.number,
+      title: c.title,
+      chapterSlug: c.chapterSlug,
+      unlocksAt: c.publishedAt,
+    };
+    await writeFile(join(LOCKED_DIR, `${c.novelSlug}--${c.chapterSlug}.json`), JSON.stringify(meta, null, 2));
+  }
+
+  // …y el TEXTO (ya como HTML) solo a un bundle para KV (nunca al repo/dist).
+  const kv = locked.map((c) => ({
+    key: `${c.novelSlug}/${c.chapterSlug}`,
+    value: JSON.stringify({
+      unlocksAt: c.publishedAt,
+      body: marked.parse(c.bodyMarkdown, { async: false }) as string,
+    }),
+  }));
+  await writeFile(KV_BULK, JSON.stringify(kv, null, 2));
 }

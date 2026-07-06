@@ -1,0 +1,86 @@
+---
+interface Props {
+  novelSlug: string;
+  chapterSlug: string;
+  unlocksAt: string;
+}
+const { novelSlug, chapterSlug, unlocksAt } = Astro.props;
+const human = new Date(unlocksAt).toLocaleString('es', { dateStyle: 'long', timeStyle: 'short' });
+---
+<div class="locked" data-novel={novelSlug} data-chapter={chapterSlug} data-unlocks={unlocksAt}>
+  <div class="locked-card" id="locked-card">
+    <span class="sigil" aria-hidden="true">✦</span>
+    <p class="eyebrow">Capítulo bloqueado</p>
+    <p class="when">Se abre el {human}</p>
+    <p class="countdown" id="countdown" aria-live="polite">—</p>
+    <p class="hint">Vuelve en la fecha indicada: el capítulo se abrirá solo.</p>
+  </div>
+  <article class="reading-body" id="locked-body" hidden></article>
+</div>
+
+<style>
+  .locked-card {
+    text-align: center;
+    border: 1px solid var(--line-bright);
+    border-radius: var(--radius);
+    background: var(--surface);
+    padding: var(--space-6) var(--space-4);
+    box-shadow: var(--shadow);
+  }
+  .locked-card .sigil { font-size: 1.4rem; }
+  .locked-card .eyebrow { margin: var(--space-3) 0 var(--space-2); }
+  .locked-card .when { font-family: var(--font-display); font-size: 1.3rem; margin: 0 0 var(--space-4); }
+  .locked-card .countdown {
+    font-family: var(--font-sans); font-variant-numeric: tabular-nums;
+    font-size: clamp(1.5rem, 5vw, 2.2rem); font-weight: 600; color: var(--brass); margin: 0;
+  }
+  .locked-card .hint { color: var(--text-muted); font-family: var(--font-sans); font-size: var(--step--1); margin-top: var(--space-4); }
+  .reading-body { font-size: var(--step-0); line-height: 1.85; }
+  .reading-body :global(p) { margin: 0 0 var(--space-4); }
+  .reading-body :global(blockquote) {
+    margin: var(--space-4) 0; padding-left: var(--space-3);
+    border-left: 2px solid var(--brass); color: var(--text-muted); font-style: italic;
+  }
+</style>
+
+<script>
+  import { formatCountdown, isUnlocked } from '../lib/unlock';
+
+  const box = document.querySelector<HTMLElement>('.locked');
+  if (box) {
+    const novel = box.dataset.novel!;
+    const chapter = box.dataset.chapter!;
+    const unlocks = box.dataset.unlocks!;
+    const cd = document.getElementById('countdown')!;
+    const card = document.getElementById('locked-card')!;
+    const body = document.getElementById('locked-body')!;
+    let done = false;
+
+    const reveal = async () => {
+      if (done) return;
+      try {
+        const res = await fetch(`/api/chapter/${encodeURIComponent(novel)}/${encodeURIComponent(chapter)}`);
+        if (res.status === 200) {
+          const data = (await res.json()) as { body?: string };
+          body.innerHTML = data.body ?? '';
+          body.hidden = false;
+          card.hidden = true;
+          done = true;
+        }
+      } catch {
+        /* reintenta en el próximo tick */
+      }
+    };
+
+    const tick = () => {
+      if (done) return;
+      const ms = Date.parse(unlocks) - Date.now();
+      cd.textContent = formatCountdown(ms);
+      if (ms <= 0) reveal();
+    };
+
+    tick();
+    const iv = setInterval(() => (done ? clearInterval(iv) : tick()), 1000);
+    if (isUnlocked(unlocks, Date.now())) reveal();
+  }
+</script>

@@ -24,4 +24,15 @@ const chapters = defineCollection({
   }),
 });
 
-export const collections = { novels, chapters };
+const lockedChapters = defineCollection({
+  type: 'data',
+  schema: z.object({
+    novelSlug: z.string(),
+    number: z.number(),
+    title: z.string(),
+    chapterSlug: z.string(),
+    unlocksAt: z.string(),
+  }),
+});
+
+export const collections = { novels, chapters, lockedChapters };
