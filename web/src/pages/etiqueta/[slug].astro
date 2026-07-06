@@ -1,0 +1,47 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import NovelCard from '../../components/NovelCard.astro';
+import { collectTaxonomy } from '../../lib/taxonomy';
+import { slugify } from '../../lib/slug';
+
+export async function getStaticPaths() {
+  const novels = await getCollection('novels');
+  const tags = collectTaxonomy(novels.map((n) => n.data), 'tags');
+  return tags.map((t) => ({ params: { slug: t.slug }, props: { name: t.name } }));
+}
+
+interface Props { name: string; }
+const { name } = Astro.props;
+const { slug } = Astro.params;
+
+const novels = (await getCollection('novels'))
+  .filter((n) => n.data.tags.some((t) => slugify(t) === slug))
+  .sort((a, b) => a.data.title.localeCompare(b.data.title, 'es'));
+---
+
+<BaseLayout title={`#${name} — Draveir`}>
+  <main class="container wide" id="contenido">
+    <a href="/novelas">← Novelas</a>
+    <h1>Etiqueta: {name}</h1>
+    <ul class="novel-grid">
+      {novels.map((n) => (
+        <NovelCard
+          slug={n.data.slug}
+          title={n.data.title}
+          synopsis={n.data.synopsis}
+          status={n.data.status}
+          categories={n.data.categories}
+        />
+      ))}
+    </ul>
+  </main>
+</BaseLayout>
+
+<style>
+  .wide { max-width: 72rem; }
+  .novel-grid {
+    list-style: none; padding: 0; display: grid; gap: var(--space-5);
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  }
+</style>

@@ -1,0 +1,76 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import NovelCard from '../components/NovelCard.astro';
+import { novelHaystack } from '../lib/search';
+
+const novels = (await getCollection('novels')).sort((a, b) =>
+  a.data.title.localeCompare(b.data.title, 'es'),
+);
+---
+
+<BaseLayout title="Buscar — Draveir">
+  <main class="container wide" id="contenido">
+    <h1>Buscar</h1>
+    <input
+      id="search-input"
+      type="search"
+      placeholder="Título, sinopsis, categoría o etiqueta…"
+      aria-label="Buscar novelas"
+      autocomplete="off"
+    />
+    <p id="search-empty" class="search-empty" hidden>Sin resultados.</p>
+    <ul class="novel-grid" id="search-results">
+      {novels.map((n) => (
+        <NovelCard
+          slug={n.data.slug}
+          title={n.data.title}
+          synopsis={n.data.synopsis}
+          status={n.data.status}
+          categories={n.data.categories}
+          searchText={novelHaystack(n.data)}
+        />
+      ))}
+    </ul>
+  </main>
+</BaseLayout>
+
+<style>
+  .wide { max-width: 72rem; }
+  #search-input {
+    width: 100%;
+    padding: var(--space-3);
+    margin-bottom: var(--space-5);
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-family: var(--font-sans);
+    font-size: var(--step-0);
+  }
+  .search-empty { color: var(--text-muted); font-family: var(--font-sans); }
+  .novel-grid {
+    list-style: none; padding: 0; display: grid; gap: var(--space-5);
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  }
+</style>
+
+<script>
+  import { normalizeText } from '../lib/search';
+
+  const input = document.getElementById('search-input') as HTMLInputElement | null;
+  const cards = Array.from(document.querySelectorAll<HTMLElement>('#search-results [data-search]'));
+  const empty = document.getElementById('search-empty');
+
+  input?.addEventListener('input', () => {
+    const terms = normalizeText(input.value).trim().split(/\s+/).filter(Boolean);
+    let visible = 0;
+    for (const card of cards) {
+      const hay = card.dataset.search ?? '';
+      const match = terms.every((t) => hay.includes(t));
+      card.style.display = match ? '' : 'none';
+      if (match) visible += 1;
+    }
+    if (empty) empty.hidden = visible !== 0;
+  });
+</script>
