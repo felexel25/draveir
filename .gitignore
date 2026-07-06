@@ -7,4 +7,7 @@ dist/
 # Contenido generado por el sync (build-time)
 web/src/content/novels/
 web/src/content/chapters/
+web/src/content/lockedChapters/
+web/.kv-bulk.json
 web/.env
+web/.dev.vars

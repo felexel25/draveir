@@ -25,4 +25,5 @@ export interface ChapterMeta {
 
 export interface ChapterData extends ChapterMeta {
   bodyMarkdown: string;
+  unlocked: boolean;
 }

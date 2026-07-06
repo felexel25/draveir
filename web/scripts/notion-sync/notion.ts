@@ -2,6 +2,7 @@ import { Client } from '@notionhq/client';
 import { NotionToMarkdown } from 'notion-to-md';
 import type { NotionPage, NovelData, ChapterData } from './types';
 import { parseNovel, parseChapterMeta } from './transform';
+import { isUnlocked } from '../../src/lib/unlock';
 
 const NOVELS_DB = 'c03f5b38-513f-4c0f-8f91-1b69cad31673';
 const CHAPTERS_DB = '4ac20247-41d9-46b7-b9ca-cae507c3eaf2';
@@ -45,21 +46,28 @@ export async function fetchNovelSlugMap(): Promise<Map<string, string>> {
   return map;
 }
 
-export async function fetchPublishedChapters(
+// Todos los capítulos visibles: Publicado o Programado. Marca `unlocked` según
+// estado/fecha; el orquestador separa estáticos (desbloqueados) de KV (bloqueados).
+export async function fetchChapters(
   novelSlugById: Map<string, string>,
 ): Promise<ChapterData[]> {
   const pages = await queryAll(CHAPTERS_DB, {
-    property: 'Estado',
-    select: { equals: 'Publicado' },
+    or: [
+      { property: 'Estado', select: { equals: 'Publicado' } },
+      { property: 'Estado', select: { equals: 'Programado' } },
+    ],
   });
 
+  const now = Date.now();
   const chapters: ChapterData[] = [];
   for (const page of pages) {
     const meta = parseChapterMeta(page, novelSlugById);
     if (!meta) continue; // capítulo de una novela no publicada → se omite
+    const estado = page.properties['Estado']?.select?.name ?? '';
+    const unlocked = estado === 'Publicado' || isUnlocked(meta.publishedAt, now);
     const blocks = await n2m.pageToMarkdown(page.id);
     const bodyMarkdown = n2m.toMarkdownString(blocks).parent ?? '';
-    chapters.push({ ...meta, bodyMarkdown });
+    chapters.push({ ...meta, bodyMarkdown, unlocked });
   }
   return chapters;
 }
