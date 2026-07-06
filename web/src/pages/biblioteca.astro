@@ -18,15 +18,27 @@ const catalog = { chapterTitles, novelTitles };
 <BaseLayout title="Mi biblioteca — Draveir">
   <main class="container wide" id="contenido">
     <h1>Mi biblioteca</h1>
-    <p class="hint" id="empty-all">Guarda novelas y lee capítulos: aparecerán aquí, solo en este navegador.</p>
+    <p class="hint">Tus favoritos, tu progreso y tu historial — guardados solo en este navegador.</p>
 
-    <section id="sec-continue" hidden>
-      <div class="sec-head"><h2>Continuar leyendo</h2></div>
+    <div class="tabs" role="tablist" aria-label="Secciones de la biblioteca">
+      <button role="tab" data-tab="continue" aria-selected="true" aria-controls="panel-continue">
+        Continuar<span class="n" data-n="continue"></span>
+      </button>
+      <button role="tab" data-tab="fav" aria-selected="false" aria-controls="panel-fav">
+        Favoritos<span class="n" data-n="fav"></span>
+      </button>
+      <button role="tab" data-tab="history" aria-selected="false" aria-controls="panel-history">
+        Historial<span class="n" data-n="history"></span>
+      </button>
+    </div>
+
+    <section class="panel" id="panel-continue" role="tabpanel" aria-labelledby="tab-continue">
+      <p class="empty" data-empty="continue">Aún no has empezado ninguna novela.</p>
       <ul class="stack" id="list-continue"></ul>
     </section>
 
-    <section id="sec-fav" hidden>
-      <div class="sec-head"><h2>Favoritos</h2></div>
+    <section class="panel" id="panel-fav" role="tabpanel" hidden>
+      <p class="empty" data-empty="fav">No has guardado novelas. Pulsa «Guardar» en la página de una novela.</p>
       <ul class="novel-grid" id="fav-grid">
         {novels.map((n) => (
           <NovelCard slug={n.data.slug} title={n.data.title} synopsis={n.data.synopsis}
@@ -35,8 +47,8 @@ const catalog = { chapterTitles, novelTitles };
       </ul>
     </section>
 
-    <section id="sec-history" hidden>
-      <div class="sec-head"><h2>Historial</h2></div>
+    <section class="panel" id="panel-history" role="tabpanel" hidden>
+      <p class="empty" data-empty="history">Tu historial de lectura aparecerá aquí.</p>
       <ul class="stack" id="list-history"></ul>
     </section>
   </main>
@@ -48,56 +60,98 @@ const catalog = { chapterTitles, novelTitles };
     const catalog = JSON.parse(document.getElementById('catalog')!.textContent!);
     const s = parseState(localStorage.getItem(READER_KEY));
 
-    const esc = (t: string) => t.replace(/[&<>"]/g, (c) =>
-      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string));
-    const link = (href: string, text: string, meta = '') =>
-      `<li><a href="${href}">${esc(text)}</a>${meta ? `<span class="when">${esc(meta)}</span>` : ''}</li>`;
+    const esc = (t: string) =>
+      t.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string));
+    const item = (href: string, title: string, meta = '') =>
+      `<li><a href="${href}">${esc(title)}</a>${meta ? `<span class="when">${esc(meta)}</span>` : ''}</li>`;
 
+    // Continuar leyendo
     const contEntries = Object.entries(s.continueReading) as [string, string][];
-    if (contEntries.length) {
-      document.getElementById('list-continue')!.innerHTML = contEntries
-        .map(([novelSlug, chapterSlug]) => {
-          const key = `${novelSlug}/${chapterSlug}`;
-          const t = `${catalog.novelTitles[novelSlug] ?? 'Novela'} · ${catalog.chapterTitles[key] ?? 'Capítulo'}`;
-          return link(`/novela/${novelSlug}/${chapterSlug}`, t);
-        })
-        .join('');
-      document.getElementById('sec-continue')!.hidden = false;
-    }
+    document.getElementById('list-continue')!.innerHTML = contEntries
+      .map(([novelSlug, chapterSlug]) => {
+        const t = catalog.novelTitles[novelSlug] ?? 'Novela';
+        const ch = catalog.chapterTitles[`${novelSlug}/${chapterSlug}`] ?? 'Capítulo';
+        return item(`/novela/${novelSlug}/${chapterSlug}`, t, ch);
+      })
+      .join('');
 
+    // Favoritos
     const favSet = new Set(s.favorites);
     let favCount = 0;
     document.querySelectorAll<HTMLElement>('#fav-grid [data-search]').forEach((li) => {
-      const a = li.querySelector<HTMLAnchorElement>('a.cover-link');
-      const slug = a?.getAttribute('href')?.split('/').pop() ?? '';
+      const slug = li.querySelector<HTMLAnchorElement>('a.cover-link')?.getAttribute('href')?.split('/').pop() ?? '';
       const on = favSet.has(slug);
       li.style.display = on ? '' : 'none';
       if (on) favCount++;
     });
-    if (favCount) document.getElementById('sec-fav')!.hidden = false;
 
-    if (s.history.length) {
-      document.getElementById('list-history')!.innerHTML = s.history
-        .map((h) => link(`/novela/${h.novelSlug}/${h.chapterSlug}`, h.title,
-          new Date(h.at).toLocaleDateString('es')))
-        .join('');
-      document.getElementById('sec-history')!.hidden = false;
+    // Historial
+    document.getElementById('list-history')!.innerHTML = s.history
+      .map((h) => item(`/novela/${h.novelSlug}/${h.chapterSlug}`, h.title,
+        new Date(h.at).toLocaleDateString('es', { day: 'numeric', month: 'long', year: 'numeric' })))
+      .join('');
+
+    // Contadores + estados vacíos
+    const counts: Record<string, number> = { continue: contEntries.length, fav: favCount, history: s.history.length };
+    for (const key of ['continue', 'fav', 'history'] as const) {
+      const n = counts[key];
+      const badge = document.querySelector(`.n[data-n="${key}"]`);
+      if (badge) badge.textContent = n ? ` · ${n}` : '';
+      const empty = document.querySelector<HTMLElement>(`.empty[data-empty="${key}"]`);
+      if (empty) empty.hidden = n > 0;
     }
 
-    if (contEntries.length || favCount || s.history.length) {
-      document.getElementById('empty-all')!.hidden = true;
-    }
+    // Pestañas
+    const tabs = Array.from(document.querySelectorAll<HTMLButtonElement>('.tabs [role="tab"]'));
+    const panels: Record<string, HTMLElement> = {
+      continue: document.getElementById('panel-continue')!,
+      fav: document.getElementById('panel-fav')!,
+      history: document.getElementById('panel-history')!,
+    };
+    const activate = (name: string) => {
+      tabs.forEach((t) => t.setAttribute('aria-selected', String(t.dataset.tab === name)));
+      for (const [k, el] of Object.entries(panels)) el.hidden = k !== name;
+    };
+    tabs.forEach((t) => t.addEventListener('click', () => activate(t.dataset.tab!)));
   </script>
 </BaseLayout>
 
 <style>
   .wide { max-width: var(--page); }
-  .hint { color: var(--text-muted); font-family: var(--font-sans); }
-  .novel-grid { list-style: none; padding: 0; display: grid; gap: var(--space-5);
-    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
-  .stack { list-style: none; padding: 0; font-family: var(--font-sans); }
-  .stack li { display: flex; justify-content: space-between; gap: var(--space-3);
-    padding: var(--space-3) 0; border-bottom: 1px solid var(--border); }
-  .stack .when { color: var(--text-muted); font-size: var(--step--1); white-space: nowrap; }
-  section { margin-top: var(--space-6); }
+  .hint { color: var(--text-muted); font-family: var(--font-sans); margin-bottom: var(--space-5); }
+
+  .tabs {
+    display: flex; gap: var(--space-2); flex-wrap: wrap;
+    border-bottom: 1px solid var(--border); margin-bottom: var(--space-5);
+  }
+  .tabs [role="tab"] {
+    font-family: var(--font-sans); font-size: 0.95rem; font-weight: 600;
+    color: var(--text-muted); background: transparent; border: 0; cursor: pointer;
+    padding: 0.7rem 0.4rem; margin-bottom: -1px;
+    border-bottom: 2px solid transparent;
+  }
+  .tabs [role="tab"]:hover { color: var(--text); }
+  .tabs [role="tab"][aria-selected="true"] { color: var(--text); border-bottom-color: var(--brass); }
+  .tabs .n { color: var(--text-muted); font-weight: 500; }
+
+  .empty { color: var(--text-muted); font-family: var(--font-sans); }
+
+  .novel-grid {
+    list-style: none; padding: 0; display: grid; gap: var(--space-5);
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  }
+
+  .stack { list-style: none; padding: 0; margin: 0; }
+  .stack li {
+    padding: var(--space-3) 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .stack li a {
+    font-family: var(--font-display); font-size: 1.1rem; color: var(--text);
+  }
+  .stack li a:hover { color: var(--accent); }
+  .stack .when {
+    display: block; margin-top: 0.25rem;
+    font-family: var(--font-sans); font-size: var(--step--1); color: var(--text-muted);
+  }
 </style>
