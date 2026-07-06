@@ -2,6 +2,7 @@
 import { getCollection } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import NovelCard from '../../components/NovelCard.astro';
+import Breadcrumb from '../../components/Breadcrumb.astro';
 import { collectTaxonomy } from '../../lib/taxonomy';
 import { slugify } from '../../lib/slug';
 
@@ -22,8 +23,11 @@ const novels = (await getCollection('novels'))
 
 <BaseLayout title={`${name} — Draveir`}>
   <main class="container wide" id="contenido">
-    <a href="/novelas">← Novelas</a>
-    <h1>Categoría: {name}</h1>
+    <Breadcrumb items={[{ label: 'Novelas', href: '/novelas' }, { label: name }]} />
+    <div class="page-head">
+      <span class="eyebrow">Categoría</span>
+      <h1>{name}</h1>
+    </div>
     <ul class="novel-grid">
       {novels.map((n) => (
         <NovelCard
@@ -40,6 +44,8 @@ const novels = (await getCollection('novels'))
 
 <style>
   .wide { max-width: 72rem; }
+  .page-head { margin-bottom: var(--space-5); }
+  .page-head h1 { margin: var(--space-1) 0 0; }
   .novel-grid {
     list-style: none; padding: 0; display: grid; gap: var(--space-5);
     grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
