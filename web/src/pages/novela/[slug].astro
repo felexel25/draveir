@@ -18,9 +18,29 @@ const { slug } = Astro.params;
 const novel = await getEntry('novels', slug);
 if (!novel) return Astro.redirect('/novelas');
 
-const chapters = (await getCollection('chapters'))
-  .filter((c) => c.data.novelSlug === slug)
-  .sort((a, b) => a.data.number - b.data.number);
+const published = (await getCollection('chapters')).filter((c) => c.data.novelSlug === slug);
+const locked = (await getCollection('lockedChapters')).filter((c) => c.data.novelSlug === slug);
+const chapters = [
+  ...published.map((c) => ({
+    number: c.data.number,
+    chapterSlug: c.data.chapterSlug,
+    title: c.data.title,
+    locked: false,
+    minutes: readingTime(c.body),
+    unlocksAt: '',
+  })),
+  ...locked.map((c) => ({
+    number: c.data.number,
+    chapterSlug: c.data.chapterSlug,
+    title: c.data.title,
+    locked: true,
+    minutes: 0,
+    unlocksAt: c.data.unlocksAt,
+  })),
+].sort((a, b) => a.number - b.number);
+
+const dateFmt = (iso: string) =>
+  new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short' });
 
 const gradient = coverGradient(novel.data.categories);
 ---
@@ -63,9 +83,9 @@ const gradient = coverGradient(novel.data.categories);
     <ol class="chapter-list">
       {chapters.map((c) => (
         <li>
-          <a href={`/novela/${slug}/${c.data.chapterSlug}`}>
-            <span>{c.data.title}</span>
-            <span class="ch-time">~{readingTime(c.body)} min</span>
+          <a href={`/novela/${slug}/${c.chapterSlug}`} class={c.locked ? 'locked' : ''}>
+            <span>{c.locked && <span class="lock" aria-hidden="true">✦</span>}{c.title}</span>
+            <span class="ch-time">{c.locked ? `Se abre el ${dateFmt(c.unlocksAt)}` : `~${c.minutes} min`}</span>
           </a>
         </li>
       ))}
@@ -91,4 +111,8 @@ const gradient = coverGradient(novel.data.categories);
   .detail h1 { margin: var(--space-2) 0 var(--space-3); }
   .synopsis { color: var(--text-muted); font-size: 1.1rem; max-width: 52ch; }
   .detail-actions { display: flex; gap: 0.75rem; margin-top: var(--space-4); flex-wrap: wrap; align-items: center; }
+  .chapter-list a.locked { color: var(--text-muted); }
+  .chapter-list a.locked:hover { color: var(--text); }
+  .chapter-list a.locked .ch-time { color: var(--warm); }
+  .chapter-list .lock { color: var(--brass); margin-right: 0.45rem; font-size: 0.8em; }
 </style>
