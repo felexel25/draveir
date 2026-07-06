@@ -3,6 +3,7 @@ import { getCollection, getEntry } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { coverGradient } from '../../lib/covers';
 import { readingTime } from '../../lib/reading';
+import { slugify } from '../../lib/slug';
 
 export async function getStaticPaths() {
   const novels = await getCollection('novels');
@@ -21,22 +22,27 @@ const gradient = coverGradient(novel.data.categories);
 ---
 
 <BaseLayout title={`${novel.data.title} — Draveir`}>
-  <main class="container wide">
-    <a href="/novelas">← Novelas</a>
+  <main class="detail" id="contenido">
+    <a class="back" href="/novelas">← Novelas</a>
     <div class="novel-hero">
-      <span class="cover" style={`background:${gradient}`} aria-hidden="true">
-        {novel.data.title.charAt(0)}
+      <span class="plate" style={`background:${gradient}`} aria-hidden="true">
+        <span class="corner sigil">✦</span>
+        <span class="mono">{novel.data.title.charAt(0)}</span>
       </span>
       <div>
+        {novel.data.categories[0] && <span class="eyebrow">{novel.data.categories[0]}</span>}
         <h1>{novel.data.title}</h1>
-        <p>{novel.data.synopsis}</p>
+        <p class="synopsis">{novel.data.synopsis}</p>
         <div class="meta">
           {novel.data.status && <span class="status">{novel.data.status}</span>}
-          {novel.data.categories.map((c) => <span class="tag">{c}</span>)}
+          {novel.data.categories.map((c) => (
+            <a class="tag" href={`/categoria/${slugify(c)}`}>{c}</a>
+          ))}
         </div>
       </div>
     </div>
-    <h2>Capítulos</h2>
+
+    <div class="sec-head"><h2>Capítulos</h2><span class="count">{chapters.length}</span></div>
     <ol class="chapter-list">
       {chapters.map((c) => (
         <li>
@@ -51,7 +57,8 @@ const gradient = coverGradient(novel.data.categories);
 </BaseLayout>
 
 <style>
-  .wide { max-width: 60rem; }
-  .chapter-list a { display: flex; justify-content: space-between; gap: var(--space-3); }
-  .ch-time { color: var(--text-muted); font-size: var(--step--1); white-space: nowrap; }
+  .detail { max-width: 62rem; margin-inline: auto; padding: var(--space-5) var(--space-3); }
+  .back { font-family: var(--font-sans); font-size: 0.9rem; }
+  .detail h1 { margin: var(--space-2) 0 var(--space-3); }
+  .synopsis { color: var(--text-muted); font-size: 1.1rem; max-width: 52ch; }
 </style>

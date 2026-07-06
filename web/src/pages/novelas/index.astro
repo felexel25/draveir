@@ -9,7 +9,7 @@ const novels = (await getCollection('novels')).sort((a, b) =>
 ---
 
 <BaseLayout title="Novelas — Draveir">
-  <main class="container wide">
+  <main class="container wide" id="contenido">
     <h1>Novelas</h1>
     <ul class="novel-grid">
       {novels.map((n) => (
