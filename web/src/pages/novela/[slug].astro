@@ -1,6 +1,7 @@
 ---
 import { getCollection, getEntry } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import { coverGradient } from '../../lib/covers';
 
 export async function getStaticPaths() {
   const novels = await getCollection('novels');
@@ -14,23 +15,35 @@ if (!novel) return Astro.redirect('/novelas');
 const chapters = (await getCollection('chapters'))
   .filter((c) => c.data.novelSlug === slug)
   .sort((a, b) => a.data.number - b.data.number);
+
+const gradient = coverGradient(novel.data.categories);
 ---
 
 <BaseLayout title={`${novel.data.title} — Draveir`}>
-  <main class="container">
+  <main class="container wide">
     <a href="/novelas">← Novelas</a>
-    <h1>{novel.data.title}</h1>
-    <p>{novel.data.synopsis}</p>
-    <div class="tags">
-      {novel.data.categories.map((c) => <span class="tag">{c}</span>)}
+    <div class="novel-hero">
+      <span class="cover" style={`background:${gradient}`} aria-hidden="true">
+        {novel.data.title.charAt(0)}
+      </span>
+      <div>
+        <h1>{novel.data.title}</h1>
+        <p>{novel.data.synopsis}</p>
+        <div class="meta">
+          {novel.data.status && <span class="status">{novel.data.status}</span>}
+          {novel.data.categories.map((c) => <span class="tag">{c}</span>)}
+        </div>
+      </div>
     </div>
     <h2>Capítulos</h2>
     <ol class="chapter-list">
       {chapters.map((c) => (
-        <li>
-          <a href={`/novela/${slug}/${c.data.chapterSlug}`}>{c.data.title}</a>
-        </li>
+        <li><a href={`/novela/${slug}/${c.data.chapterSlug}`}>{c.data.title}</a></li>
       ))}
     </ol>
   </main>
 </BaseLayout>
+
+<style>
+  .wide { max-width: 60rem; }
+</style>
