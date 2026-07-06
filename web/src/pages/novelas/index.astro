@@ -1,6 +1,7 @@
 ---
 import { getCollection } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import NovelCard from '../../components/NovelCard.astro';
 
 const novels = (await getCollection('novels')).sort((a, b) =>
   a.data.title.localeCompare(b.data.title, 'es'),
@@ -8,19 +9,29 @@ const novels = (await getCollection('novels')).sort((a, b) =>
 ---
 
 <BaseLayout title="Novelas — Draveir">
-  <main class="container">
+  <main class="container wide">
     <h1>Novelas</h1>
     <ul class="novel-grid">
       {novels.map((n) => (
-        <li class="novel-card">
-          <a href={`/novela/${n.data.slug}`}>
-            <span class="cover" aria-hidden="true">{n.data.title.charAt(0)}</span>
-            <h2>{n.data.title}</h2>
-            <p>{n.data.synopsis}</p>
-            <span class="status">{n.data.status}</span>
-          </a>
-        </li>
+        <NovelCard
+          slug={n.data.slug}
+          title={n.data.title}
+          synopsis={n.data.synopsis}
+          status={n.data.status}
+          categories={n.data.categories}
+        />
       ))}
     </ul>
   </main>
 </BaseLayout>
+
+<style>
+  .wide { max-width: 72rem; }
+  .novel-grid {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    gap: var(--space-5);
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  }
+</style>
