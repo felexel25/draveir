@@ -1,0 +1,43 @@
+---
+interface Props { slug: string; }
+const { slug } = Astro.props;
+---
+<button class="fav" type="button" data-slug={slug} aria-pressed="false" hidden>
+  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+    <path d="M12 21s-7.5-4.6-10-9.2C.4 8.4 2 5 5.3 5c2 0 3.4 1.2 4.7 2.8C11.3 6.2 12.7 5 14.7 5 18 5 19.6 8.4 22 11.8 19.5 16.4 12 21 12 21z"/>
+  </svg>
+  <span class="fav-label">Guardar</span>
+</button>
+
+<style>
+  .fav {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    font-family: var(--font-sans); font-size: 0.9rem; font-weight: 600;
+    padding: 0.55rem 1rem; border-radius: var(--radius);
+    border: 1px solid var(--line-bright); background: transparent; color: var(--text); cursor: pointer;
+  }
+  .fav:hover { border-color: var(--accent); }
+  .fav[aria-pressed="true"] { color: var(--brass); border-color: var(--brass); }
+  .fav[aria-pressed="true"] svg { fill: var(--brass); }
+</style>
+
+<script>
+  import { parseState, toggleFavorite, isFavorite, READER_KEY } from '../lib/reader';
+
+  document.querySelectorAll<HTMLButtonElement>('.fav').forEach((btn) => {
+    const slug = btn.dataset.slug!;
+    const paint = () => {
+      const s = parseState(localStorage.getItem(READER_KEY));
+      const on = isFavorite(s, slug);
+      btn.setAttribute('aria-pressed', String(on));
+      btn.querySelector('.fav-label')!.textContent = on ? 'Guardada' : 'Guardar';
+    };
+    btn.hidden = false;
+    paint();
+    btn.addEventListener('click', () => {
+      const s = toggleFavorite(parseState(localStorage.getItem(READER_KEY)), slug);
+      localStorage.setItem(READER_KEY, JSON.stringify(s));
+      paint();
+    });
+  });
+</script>
