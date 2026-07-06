@@ -9,7 +9,7 @@
     "preview": "astro preview",
     "check": "astro check",
     "sync": "tsx scripts/notion-sync/index.ts",
-    "kv:put": "wrangler kv bulk put ./.kv-bulk.json --binding=LOCKED_CHAPTERS",
+    "kv:put": "wrangler kv bulk put ./.kv-bulk.json --namespace-id $CLOUDFLARE_KV_NAMESPACE_ID",
     "test": "vitest run"
   },
   "dependencies": {

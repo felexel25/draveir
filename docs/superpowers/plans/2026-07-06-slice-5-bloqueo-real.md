@@ -89,10 +89,10 @@ Tests: unlocked before/after/invalid; formatCountdown of known values and negati
 ---
 
 ## Pasos manuales del autor (Cloudflare) — se coordinan aparte
-1. Crear KV namespace `draveir-locked` (por dashboard o `wrangler kv namespace create`).
-2. Pages → proyecto draveir → Settings → Functions → **KV bindings**: `LOCKED_CHAPTERS` → ese namespace.
-3. Crear API token (permiso Workers KV Storage + Pages) → secretos `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` en GitHub.
-4. Poner el namespace id en `wrangler.toml`.
+(No se usa `wrangler.toml`: rompía el build de Pages. Las Functions se autodetectan; el binding KV se pone en el dashboard, y el `kv bulk put` usa `--namespace-id`.)
+1. Crear KV namespace `draveir-locked` (dashboard o `wrangler kv namespace create draveir-locked`). Guardar su **id**.
+2. Pages → proyecto draveir → Settings → Functions → **KV namespace bindings**: variable `LOCKED_CHAPTERS` → ese namespace (para Production y Preview).
+3. Crear API token (permisos: Account · Workers KV Storage · Edit; y Pages) → secretos en GitHub: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_KV_NAMESPACE_ID`.
 
 ## Self-Review
 - Bloqueo real ✓ (texto solo en KV, Task 2+4), cuenta regresiva ✓ (Task 3), apertura automática por fecha ✓ (Function evalúa fecha viva), rate limit + marca de agua ✓ (Task 4).
