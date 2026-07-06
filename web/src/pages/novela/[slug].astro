@@ -1,6 +1,9 @@
 ---
 import { getCollection, getEntry } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import Breadcrumb from '../../components/Breadcrumb.astro';
+import Emblem from '../../components/Emblem.astro';
+import { pickEmblem } from '../../lib/emblem';
 import { coverGradient } from '../../lib/covers';
 import { readingTime } from '../../lib/reading';
 import { slugify } from '../../lib/slug';
@@ -23,11 +26,11 @@ const gradient = coverGradient(novel.data.categories);
 
 <BaseLayout title={`${novel.data.title} — Draveir`}>
   <main class="detail" id="contenido">
-    <a class="back" href="/novelas">← Novelas</a>
+    <Breadcrumb items={[{ label: 'Novelas', href: '/novelas' }, { label: novel.data.title }]} />
     <div class="novel-hero">
       <span class="plate" style={`background:${gradient}`} aria-hidden="true">
         <span class="corner sigil">✦</span>
-        <span class="mono">{novel.data.title.charAt(0)}</span>
+        <Emblem name={pickEmblem(novel.data.slug)} />
       </span>
       <div>
         {novel.data.categories[0] && <span class="eyebrow">{novel.data.categories[0]}</span>}
@@ -58,7 +61,6 @@ const gradient = coverGradient(novel.data.categories);
 
 <style>
   .detail { max-width: 62rem; margin-inline: auto; padding: var(--space-5) var(--space-3); }
-  .back { font-family: var(--font-sans); font-size: 0.9rem; }
   .detail h1 { margin: var(--space-2) 0 var(--space-3); }
   .synopsis { color: var(--text-muted); font-size: 1.1rem; max-width: 52ch; }
 </style>
