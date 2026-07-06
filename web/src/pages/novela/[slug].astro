@@ -25,7 +25,16 @@ const chapters = (await getCollection('chapters'))
 const gradient = coverGradient(novel.data.categories);
 ---
 
-<BaseLayout title={`${novel.data.title} — Draveir`}>
+<BaseLayout title={`${novel.data.title} — Draveir`} description={novel.data.synopsis} ogType="book">
+  <script type="application/ld+json" slot="head" is:inline set:html={JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': 'Book',
+    name: novel.data.title,
+    author: { '@type': 'Person', name: 'Draveir' },
+    description: novel.data.synopsis,
+    inLanguage: 'es',
+    genre: novel.data.categories,
+  })} />
   <main class="detail" id="contenido">
     <Breadcrumb items={[{ label: 'Novelas', href: '/novelas' }, { label: novel.data.title }]} />
     <div class="novel-hero">
