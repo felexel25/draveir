@@ -43,8 +43,7 @@ const base = `/novela/${novelSlug}`;
 </style>
 
 <script>
-  document.querySelectorAll('.cn-select').forEach((el) => {
-    const sel = el as HTMLSelectElement;
+  document.querySelectorAll<HTMLSelectElement>('.cn-select').forEach((sel) => {
     sel.addEventListener('change', () => {
       const base = sel.dataset.base;
       if (base) location.href = `${base}/${sel.value}`;
