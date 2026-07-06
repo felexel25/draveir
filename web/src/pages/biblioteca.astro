@@ -1,0 +1,103 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import NovelCard from '../components/NovelCard.astro';
+import { novelHaystack } from '../lib/search';
+
+const novels = (await getCollection('novels')).sort((a, b) =>
+  a.data.title.localeCompare(b.data.title, 'es'),
+);
+const chapterTitles: Record<string, string> = {};
+for (const c of await getCollection('chapters')) {
+  chapterTitles[`${c.data.novelSlug}/${c.data.chapterSlug}`] = c.data.title;
+}
+const novelTitles = Object.fromEntries(novels.map((n) => [n.data.slug, n.data.title]));
+const catalog = { chapterTitles, novelTitles };
+---
+
+<BaseLayout title="Mi biblioteca — Draveir">
+  <main class="container wide" id="contenido">
+    <h1>Mi biblioteca</h1>
+    <p class="hint" id="empty-all">Guarda novelas y lee capítulos: aparecerán aquí, solo en este navegador.</p>
+
+    <section id="sec-continue" hidden>
+      <div class="sec-head"><h2>Continuar leyendo</h2></div>
+      <ul class="stack" id="list-continue"></ul>
+    </section>
+
+    <section id="sec-fav" hidden>
+      <div class="sec-head"><h2>Favoritos</h2></div>
+      <ul class="novel-grid" id="fav-grid">
+        {novels.map((n) => (
+          <NovelCard slug={n.data.slug} title={n.data.title} synopsis={n.data.synopsis}
+            status={n.data.status} categories={n.data.categories} searchText={novelHaystack(n.data)} />
+        ))}
+      </ul>
+    </section>
+
+    <section id="sec-history" hidden>
+      <div class="sec-head"><h2>Historial</h2></div>
+      <ul class="stack" id="list-history"></ul>
+    </section>
+  </main>
+
+  <script type="application/json" id="catalog" is:inline set:html={JSON.stringify(catalog)}></script>
+  <script>
+    import { parseState, READER_KEY } from '../lib/reader';
+
+    const catalog = JSON.parse(document.getElementById('catalog')!.textContent!);
+    const s = parseState(localStorage.getItem(READER_KEY));
+
+    const esc = (t: string) => t.replace(/[&<>"]/g, (c) =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string));
+    const link = (href: string, text: string, meta = '') =>
+      `<li><a href="${href}">${esc(text)}</a>${meta ? `<span class="when">${esc(meta)}</span>` : ''}</li>`;
+
+    const contEntries = Object.entries(s.continueReading) as [string, string][];
+    if (contEntries.length) {
+      document.getElementById('list-continue')!.innerHTML = contEntries
+        .map(([novelSlug, chapterSlug]) => {
+          const key = `${novelSlug}/${chapterSlug}`;
+          const t = `${catalog.novelTitles[novelSlug] ?? 'Novela'} · ${catalog.chapterTitles[key] ?? 'Capítulo'}`;
+          return link(`/novela/${novelSlug}/${chapterSlug}`, t);
+        })
+        .join('');
+      document.getElementById('sec-continue')!.hidden = false;
+    }
+
+    const favSet = new Set(s.favorites);
+    let favCount = 0;
+    document.querySelectorAll<HTMLElement>('#fav-grid [data-search]').forEach((li) => {
+      const a = li.querySelector<HTMLAnchorElement>('a.cover-link');
+      const slug = a?.getAttribute('href')?.split('/').pop() ?? '';
+      const on = favSet.has(slug);
+      li.style.display = on ? '' : 'none';
+      if (on) favCount++;
+    });
+    if (favCount) document.getElementById('sec-fav')!.hidden = false;
+
+    if (s.history.length) {
+      document.getElementById('list-history')!.innerHTML = s.history
+        .map((h) => link(`/novela/${h.novelSlug}/${h.chapterSlug}`, h.title,
+          new Date(h.at).toLocaleDateString('es')))
+        .join('');
+      document.getElementById('sec-history')!.hidden = false;
+    }
+
+    if (contEntries.length || favCount || s.history.length) {
+      document.getElementById('empty-all')!.hidden = true;
+    }
+  </script>
+</BaseLayout>
+
+<style>
+  .wide { max-width: var(--page); }
+  .hint { color: var(--text-muted); font-family: var(--font-sans); }
+  .novel-grid { list-style: none; padding: 0; display: grid; gap: var(--space-5);
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
+  .stack { list-style: none; padding: 0; font-family: var(--font-sans); }
+  .stack li { display: flex; justify-content: space-between; gap: var(--space-3);
+    padding: var(--space-3) 0; border-bottom: 1px solid var(--border); }
+  .stack .when { color: var(--text-muted); font-size: var(--step--1); white-space: nowrap; }
+  section { margin-top: var(--space-6); }
+</style>

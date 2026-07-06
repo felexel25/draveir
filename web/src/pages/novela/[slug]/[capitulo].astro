@@ -59,4 +59,18 @@ const minutes = readingTime(entry.body);
       update();
     })();
   </script>
+
+  <script is:inline set:html={`window.__chapter=${JSON.stringify({
+    novelSlug: slug,
+    chapterSlug: entry.data.chapterSlug,
+    title: `${novel?.data.title ?? 'Novela'} · ${entry.data.title}`,
+  })};`}></script>
+  <script>
+    import { parseState, recordRead, READER_KEY } from '../../../lib/reader';
+    const c = (window as any).__chapter;
+    if (c) {
+      const s = recordRead(parseState(localStorage.getItem(READER_KEY)), { ...c, at: Date.now() });
+      localStorage.setItem(READER_KEY, JSON.stringify(s));
+    }
+  </script>
 </BaseLayout>
