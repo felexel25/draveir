@@ -93,12 +93,11 @@ a:hover { color: var(--accent-strong); }
   border-radius: 5px;
   pointer-events: none;
 }
-.plate .mono {
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: clamp(3rem, 8vw, 5.5rem);
-  color: rgba(255, 255, 255, 0.94);
-  text-shadow: 0 2px 30px rgba(0, 0, 0, 0.4);
+.plate .emblem {
+  width: 48%;
+  height: auto;
+  color: #efe4c8;
+  filter: drop-shadow(0 2px 14px rgba(0, 0, 0, 0.35));
 }
 .plate .corner {
   position: absolute;

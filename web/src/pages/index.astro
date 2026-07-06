@@ -4,6 +4,8 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import NovelCard from '../components/NovelCard.astro';
 import { coverGradient } from '../lib/covers';
 import { novelHaystack } from '../lib/search';
+import { pickEmblem } from '../lib/emblem';
+import Emblem from '../components/Emblem.astro';
 
 const novels = (await getCollection('novels')).sort((a, b) =>
   a.data.title.localeCompare(b.data.title, 'es'),
@@ -46,7 +48,7 @@ const readHref = firstChapter
         <a class="hero-cover" href={`/novela/${featured.data.slug}`} aria-hidden="true" tabindex="-1">
           <span class="plate" style={`background:${featuredGradient}`}>
             <span class="corner sigil">✦</span>
-            <span class="mono">{featured.data.title.charAt(0)}</span>
+            <Emblem name={pickEmblem(featured.data.slug)} />
             <span class="plabel">{featured.data.status}</span>
           </span>
         </a>
