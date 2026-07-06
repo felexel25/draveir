@@ -2,6 +2,7 @@
 import { getCollection, getEntry } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { coverGradient } from '../../lib/covers';
+import { readingTime } from '../../lib/reading';
 
 export async function getStaticPaths() {
   const novels = await getCollection('novels');
@@ -38,7 +39,12 @@ const gradient = coverGradient(novel.data.categories);
     <h2>Capítulos</h2>
     <ol class="chapter-list">
       {chapters.map((c) => (
-        <li><a href={`/novela/${slug}/${c.data.chapterSlug}`}>{c.data.title}</a></li>
+        <li>
+          <a href={`/novela/${slug}/${c.data.chapterSlug}`}>
+            <span>{c.data.title}</span>
+            <span class="ch-time">~{readingTime(c.body)} min</span>
+          </a>
+        </li>
       ))}
     </ol>
   </main>
@@ -46,4 +52,6 @@ const gradient = coverGradient(novel.data.categories);
 
 <style>
   .wide { max-width: 60rem; }
+  .chapter-list a { display: flex; justify-content: space-between; gap: var(--space-3); }
+  .ch-time { color: var(--text-muted); font-size: var(--step--1); white-space: nowrap; }
 </style>
