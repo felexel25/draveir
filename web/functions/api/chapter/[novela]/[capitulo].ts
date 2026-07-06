@@ -36,8 +36,15 @@ export const onRequestGet: PagesFunction<Env> = async ({ params, env }) => {
     return json({ unlocksAt: data.unlocksAt }, 423);
   }
 
-  // Marca de agua invisible por sesión (trazabilidad de filtraciones).
-  const stamp = `<!-- draveir ${crypto.randomUUID()} ${new Date().toISOString()} -->`;
+  // Marca de agua invisible por sesión (trazabilidad de filtraciones):
+  // payload codificado (base64) con autor + id único + timestamp.
+  const payload = JSON.stringify({
+    a: 'Félix Llerena (Draveir)',
+    id: crypto.randomUUID(),
+    t: Date.now(),
+  });
+  const mark = btoa(unescape(encodeURIComponent(payload)));
+  const stamp = `<!-- df:${mark} -->`;
   return new Response(JSON.stringify({ body: stamp + data.body }), {
     status: 200,
     headers: {

@@ -1,6 +1,11 @@
 import { defineConfig } from 'astro/config';
+import sitemap from '@astrojs/sitemap';
 
-// ponytail: config mínima. Se añade sitemap/integraciones en Slice 6.
 export default defineConfig({
   site: 'https://draveir.pages.dev',
+  integrations: [
+    sitemap({
+      filter: (page) => !page.includes('/biblioteca') && !page.includes('/buscar'),
+    }),
+  ],
 });
