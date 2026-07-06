@@ -1,0 +1,58 @@
+---
+import { coverGradient } from '../lib/covers';
+
+interface Props {
+  slug: string;
+  title: string;
+  synopsis: string;
+  status: string | null;
+  categories: string[];
+}
+
+const { slug, title, synopsis, status, categories } = Astro.props;
+const gradient = coverGradient(categories);
+---
+
+<li class="novel-card">
+  <a href={`/novela/${slug}`}>
+    <span class="cover" style={`background:${gradient}`} aria-hidden="true">
+      {title.charAt(0)}
+    </span>
+    <h2>{title}</h2>
+    <p class="synopsis">{synopsis}</p>
+    <div class="meta">
+      {status && <span class="status">{status}</span>}
+      {categories.slice(0, 2).map((c) => <span class="tag">{c}</span>)}
+    </div>
+  </a>
+</li>
+
+<style>
+  .novel-card a { display: block; color: inherit; }
+  .novel-card .cover {
+    display: grid;
+    place-items: center;
+    aspect-ratio: 3 / 4;
+    border-radius: var(--radius);
+    font-family: var(--font-serif);
+    font-size: 3rem;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: var(--space-3);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+  .novel-card h2 { font-size: var(--step-1); margin: 0 0 var(--space-2); }
+  .synopsis {
+    color: var(--text-muted);
+    font-size: var(--step-0);
+    margin: 0 0 var(--space-3);
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .novel-card .cover { transition: transform 0.2s ease; }
+    .novel-card a:hover .cover { transform: translateY(-4px); }
+  }
+</style>
