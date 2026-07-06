@@ -143,6 +143,8 @@ const catalog = { chapterTitles, novelTitles };
 
   .stack { list-style: none; padding: 0; margin: 0; }
   .stack li {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: var(--space-2) var(--space-5); flex-wrap: wrap;
     padding: var(--space-3) 0;
     border-bottom: 1px solid var(--border);
   }
@@ -151,7 +153,7 @@ const catalog = { chapterTitles, novelTitles };
   }
   .stack li a:hover { color: var(--accent); }
   .stack .when {
-    display: block; margin-top: 0.25rem;
     font-family: var(--font-sans); font-size: var(--step--1); color: var(--text-muted);
+    white-space: nowrap;
   }
 </style>
