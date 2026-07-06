@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /biblioteca
+Disallow: /buscar
+
+Sitemap: https://draveir.pages.dev/sitemap-index.xml
