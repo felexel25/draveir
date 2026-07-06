@@ -196,7 +196,8 @@ a.tag:hover { border-color: var(--accent); color: var(--text); }
 }
 .novel-hero .meta { margin-top: var(--space-3); }
 @media (max-width: 560px) {
-  .novel-hero { grid-template-columns: 120px 1fr; gap: var(--space-4); }
+  .novel-hero { grid-template-columns: 1fr; gap: var(--space-3); }
+  .novel-hero .plate { width: 150px; }
 }
 
 @media (prefers-reduced-motion: no-preference) {
