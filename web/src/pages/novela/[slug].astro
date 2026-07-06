@@ -40,7 +40,11 @@ const chapters = [
 ].sort((a, b) => a.number - b.number);
 
 const dateFmt = (iso: string) =>
-  new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short' });
+  new Date(iso).toLocaleDateString('es', {
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'America/Bogota',
+  });
 
 const gradient = coverGradient(novel.data.categories);
 ---

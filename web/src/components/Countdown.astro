@@ -5,7 +5,11 @@ interface Props {
   unlocksAt: string;
 }
 const { novelSlug, chapterSlug, unlocksAt } = Astro.props;
-const human = new Date(unlocksAt).toLocaleString('es', { dateStyle: 'long', timeStyle: 'short' });
+const human = new Date(unlocksAt).toLocaleString('es', {
+  dateStyle: 'long',
+  timeStyle: 'short',
+  timeZone: 'America/Bogota',
+});
 ---
 <div class="locked" data-novel={novelSlug} data-chapter={chapterSlug} data-unlocks={unlocksAt}>
   <div class="locked-card" id="locked-card">
