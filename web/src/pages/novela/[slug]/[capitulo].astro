@@ -68,7 +68,9 @@ const minutes = props.kind === 'published' ? readingTime(props.entry.body) : 0;
       )
     )}
 
-    <ChapterNav novelSlug={slug} current={chapterSlug} items={items} />
+    <div class="chapter-foot">
+      <ChapterNav novelSlug={slug} current={chapterSlug} items={items} />
+    </div>
   </main>
 
   {props.kind === 'published' && (
