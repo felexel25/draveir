@@ -1,0 +1,29 @@
+:root {
+  --color-bg: #ffffff;
+  --color-fg: #1a1a1a;
+  --measure: 65ch;
+  --font-body: Georgia, 'Times New Roman', serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #14151a;
+    --color-fg: #e8e8ea;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-fg);
+  font-family: var(--font-body);
+  line-height: 1.7;
+}
+
+.container {
+  max-width: var(--measure);
+  margin-inline: auto;
+  padding: 2rem 1.25rem;
+}
