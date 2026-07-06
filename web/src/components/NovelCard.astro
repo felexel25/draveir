@@ -1,5 +1,6 @@
 ---
 import { coverGradient } from '../lib/covers';
+import { slugify } from '../lib/slug';
 
 interface Props {
   slug: string;
@@ -7,28 +8,32 @@ interface Props {
   synopsis: string;
   status: string | null;
   categories: string[];
+  searchText?: string;
 }
 
-const { slug, title, synopsis, status, categories } = Astro.props;
+const { slug, title, synopsis, status, categories, searchText } = Astro.props;
 const gradient = coverGradient(categories);
 ---
 
-<li class="novel-card">
+<li class="novel-card" data-search={searchText}>
   <a href={`/novela/${slug}`}>
     <span class="cover" style={`background:${gradient}`} aria-hidden="true">
       {title.charAt(0)}
     </span>
     <h2>{title}</h2>
     <p class="synopsis">{synopsis}</p>
-    <div class="meta">
-      {status && <span class="status">{status}</span>}
-      {categories.slice(0, 2).map((c) => <span class="tag">{c}</span>)}
-    </div>
   </a>
+  <div class="meta">
+    {status && <span class="status">{status}</span>}
+    {categories.slice(0, 2).map((c) => (
+      <a class="tag" href={`/categoria/${slugify(c)}`}>{c}</a>
+    ))}
+  </div>
 </li>
 
 <style>
-  .novel-card a { display: block; color: inherit; }
+  .novel-card a { color: inherit; }
+  .novel-card > a { display: block; }
   .novel-card .cover {
     display: grid;
     place-items: center;
@@ -51,8 +56,9 @@ const gradient = coverGradient(categories);
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
+  .meta a.tag:hover { background: var(--surface-2); color: var(--text); }
   @media (prefers-reduced-motion: no-preference) {
     .novel-card .cover { transition: transform 0.2s ease; }
-    .novel-card a:hover .cover { transform: translateY(-4px); }
+    .novel-card > a:hover .cover { transform: translateY(-4px); }
   }
 </style>
