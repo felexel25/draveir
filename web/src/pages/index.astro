@@ -1,11 +1,102 @@
 ---
+import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
+import NovelCard from '../components/NovelCard.astro';
+import { coverGradient } from '../lib/covers';
+import { novelHaystack } from '../lib/search';
+import { pickEmblem } from '../lib/emblem';
+import Emblem from '../components/Emblem.astro';
+
+const novels = (await getCollection('novels')).sort((a, b) =>
+  a.data.title.localeCompare(b.data.title, 'es'),
+);
+const chapters = await getCollection('chapters');
+
+const featured = novels.find((n) => n.data.featured) ?? novels[0];
+const featuredGradient = featured ? coverGradient(featured.data.categories) : '';
+const firstChapter = featured
+  ? chapters
+      .filter((c) => c.data.novelSlug === featured.data.slug)
+      .sort((a, b) => a.data.number - b.data.number)[0]
+  : undefined;
+const readHref = firstChapter
+  ? `/novela/${featured.data.slug}/${firstChapter.data.chapterSlug}`
+  : featured
+    ? `/novela/${featured.data.slug}`
+    : '/novelas';
 ---
 
 <BaseLayout title="Draveir — Novelas">
-  <main class="container">
-    <h1>Draveir</h1>
-    <p>Una plataforma de lectura en construcción. Pronto, historias que valdrá la pena esperar.</p>
-    <p><a href="/novelas">Ver novelas →</a></p>
+  <main class="wrap" id="contenido">
+    {featured && (
+      <section class="hero">
+        <div class="hero-copy">
+          <div class="kicker">
+            <span class="line" aria-hidden="true"></span>
+            <span class="eyebrow">Historia destacada · {featured.data.categories[0]}</span>
+          </div>
+          <h1>{featured.data.title}</h1>
+          <p class="lead">{featured.data.synopsis}</p>
+          <div class="cta-row">
+            <a class="btn btn-primary" href={readHref}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+              Comenzar a leer
+            </a>
+            <a class="btn btn-ghost" href="/novelas">Ver todas las novelas</a>
+          </div>
+        </div>
+        <a class="hero-cover" href={`/novela/${featured.data.slug}`} aria-hidden="true" tabindex="-1">
+          <span class="plate" style={`background:${featuredGradient}`}>
+            <span class="corner sigil">✦</span>
+            <Emblem name={pickEmblem(featured.data.slug)} />
+            <span class="plabel">{featured.data.status}</span>
+          </span>
+        </a>
+      </section>
+    )}
+
+    <section class="library">
+      <div class="sec-head">
+        <h2>La biblioteca</h2>
+        <span class="count">{novels.length} {novels.length === 1 ? 'mundo' : 'mundos'}</span>
+      </div>
+      <ul class="novel-grid">
+        {novels.map((n) => (
+          <NovelCard
+            slug={n.data.slug}
+            title={n.data.title}
+            synopsis={n.data.synopsis}
+            status={n.data.status}
+            categories={n.data.categories}
+            searchText={novelHaystack(n.data)}
+          />
+        ))}
+      </ul>
+    </section>
   </main>
 </BaseLayout>
+
+<style>
+  .wrap { max-width: var(--page); margin-inline: auto; padding: 0 var(--space-3); }
+
+  .hero {
+    display: grid;
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: var(--space-6);
+    align-items: center;
+    padding: var(--space-6) 0 var(--space-5);
+  }
+  .kicker { display: flex; align-items: center; gap: 0.75rem; margin-bottom: var(--space-4); }
+  .kicker .line { height: 1px; width: 46px; background: var(--brass); opacity: 0.85; }
+  .hero h1 { font-size: clamp(2.4rem, 6vw, 4.1rem); margin: 0 0 var(--space-4); }
+  .hero .lead { font-size: 1.15rem; color: var(--text-muted); max-width: 46ch; margin: 0 0 var(--space-5); }
+  .cta-row { display: flex; gap: 0.9rem; flex-wrap: wrap; }
+  .hero-cover { display: block; justify-self: center; width: min(320px, 80%); }
+
+  .library { padding: var(--space-3) 0 var(--space-6); }
+
+  @media (max-width: 860px) {
+    .hero { grid-template-columns: 1fr; gap: var(--space-5); padding-top: var(--space-5); }
+    .hero-cover { grid-row: 1; width: min(220px, 60%); justify-self: start; }
+  }
+</style>

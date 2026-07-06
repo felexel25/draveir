@@ -1,7 +1,8 @@
 ---
-import { getCollection, type CollectionEntry } from 'astro:content';
+import { getCollection, getEntry, type CollectionEntry } from 'astro:content';
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import ChapterNav from '../../../components/ChapterNav.astro';
+import Breadcrumb from '../../../components/Breadcrumb.astro';
 import { readingTime } from '../../../lib/reading';
 
 export async function getStaticPaths() {
@@ -15,6 +16,7 @@ export async function getStaticPaths() {
 interface Props { entry: CollectionEntry<'chapters'>; }
 const { entry } = Astro.props;
 const { slug } = Astro.params;
+const novel = await getEntry('novels', slug);
 const { Content } = await entry.render();
 
 const items = (await getCollection('chapters'))
@@ -28,8 +30,12 @@ const minutes = readingTime(entry.body);
 <BaseLayout title={`${entry.data.title} — Draveir`}>
   <div class="reading-progress" id="reading-progress"></div>
   <main class="container reading" id="contenido">
+    <Breadcrumb items={[
+      { label: 'Novelas', href: '/novelas' },
+      { label: novel?.data.title ?? 'Novela', href: `/novela/${slug}` },
+      { label: entry.data.title },
+    ]} />
     <div class="reading-top">
-      <a href={`/novela/${slug}`}>← Índice</a>
       <ChapterNav novelSlug={slug} current={entry.data.chapterSlug} items={items} />
     </div>
     <h1>{entry.data.title}</h1>

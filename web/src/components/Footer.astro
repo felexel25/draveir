@@ -2,7 +2,10 @@
 const year = new Date().getFullYear();
 ---
 <footer class="site-footer">
-  <p>Draveir · {year} · Escrito con niebla y relojes.</p>
+  <div class="footer-inner">
+    <span class="fbrand"><span class="sigil" aria-hidden="true">✦</span> Draveir</span>
+    <span>Escrito con niebla y relojes · {year}</span>
+  </div>
 </footer>
 
 <style>
@@ -10,9 +13,17 @@ const year = new Date().getFullYear();
     border-top: 1px solid var(--border);
     margin-top: var(--space-6);
     padding: var(--space-4) var(--space-3);
-    text-align: center;
     color: var(--text-muted);
     font-family: var(--font-sans);
     font-size: var(--step--1);
   }
+  .footer-inner {
+    max-width: var(--page);
+    margin-inline: auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
+  .fbrand { color: var(--text); font-weight: 500; }
 </style>
