@@ -1,6 +1,8 @@
 ---
 import { getCollection, type CollectionEntry } from 'astro:content';
 import BaseLayout from '../../../layouts/BaseLayout.astro';
+import ChapterNav from '../../../components/ChapterNav.astro';
+import { readingTime } from '../../../lib/reading';
 
 export async function getStaticPaths() {
   const chapters = await getCollection('chapters');
@@ -10,30 +12,45 @@ export async function getStaticPaths() {
   }));
 }
 
-interface Props {
-  entry: CollectionEntry<'chapters'>;
-}
-
+interface Props { entry: CollectionEntry<'chapters'>; }
 const { entry } = Astro.props;
 const { slug } = Astro.params;
 const { Content } = await entry.render();
 
-const siblings = (await getCollection('chapters'))
+const items = (await getCollection('chapters'))
   .filter((c) => c.data.novelSlug === slug)
-  .sort((a, b) => a.data.number - b.data.number);
-const idx = siblings.findIndex((c) => c.id === entry.id);
-const prev = siblings[idx - 1];
-const next = siblings[idx + 1];
+  .sort((a, b) => a.data.number - b.data.number)
+  .map((c) => ({ chapterSlug: c.data.chapterSlug, title: c.data.title }));
+
+const minutes = readingTime(entry.body);
 ---
 
 <BaseLayout title={`${entry.data.title} — Draveir`}>
-  <main class="container reading">
-    <a href={`/novela/${slug}`}>← Índice</a>
+  <div class="reading-progress" id="reading-progress"></div>
+  <main class="container reading" id="contenido">
+    <div class="reading-top">
+      <a href={`/novela/${slug}`}>← Índice</a>
+      <ChapterNav novelSlug={slug} current={entry.data.chapterSlug} items={items} />
+    </div>
     <h1>{entry.data.title}</h1>
+    <p class="reading-meta">~{minutes} min de lectura</p>
     <article><Content /></article>
-    <nav class="chapter-nav">
-      {prev && <a href={`/novela/${slug}/${prev.data.chapterSlug}`}>← Anterior</a>}
-      {next && <a href={`/novela/${slug}/${next.data.chapterSlug}`}>Siguiente →</a>}
-    </nav>
+    <ChapterNav novelSlug={slug} current={entry.data.chapterSlug} items={items} />
   </main>
+  <script is:inline>
+    (function () {
+      var bar = document.getElementById('reading-progress');
+      var article = document.querySelector('.reading article');
+      if (!bar || !article) return;
+      function update() {
+        var rect = article.getBoundingClientRect();
+        var total = rect.height - window.innerHeight;
+        var scrolled = Math.min(Math.max(-rect.top, 0), total);
+        bar.style.width = (total > 0 ? (scrolled / total) * 100 : 0) + '%';
+      }
+      document.addEventListener('scroll', update, { passive: true });
+      window.addEventListener('resize', update);
+      update();
+    })();
+  </script>
 </BaseLayout>

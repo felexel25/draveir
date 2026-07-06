@@ -1,0 +1,53 @@
+---
+interface Item { chapterSlug: string; title: string; }
+interface Props { novelSlug: string; current: string; items: Item[]; }
+const { novelSlug, current, items } = Astro.props;
+const idx = items.findIndex((i) => i.chapterSlug === current);
+const prev = items[idx - 1];
+const next = items[idx + 1];
+const base = `/novela/${novelSlug}`;
+---
+<nav class="chapter-nav" aria-label="Navegación de capítulos">
+  {prev
+    ? <a class="cn-btn" href={`${base}/${prev.chapterSlug}`} rel="prev">← Anterior</a>
+    : <span class="cn-btn cn-disabled" aria-disabled="true">← Anterior</span>}
+
+  <select class="cn-select" aria-label="Saltar a capítulo" data-base={base}>
+    {items.map((i) => (
+      <option value={i.chapterSlug} selected={i.chapterSlug === current}>{i.title}</option>
+    ))}
+  </select>
+
+  {next
+    ? <a class="cn-btn" href={`${base}/${next.chapterSlug}`} rel="next">Siguiente →</a>
+    : <span class="cn-btn cn-disabled" aria-disabled="true">Siguiente →</span>}
+</nav>
+
+<style>
+  .chapter-nav {
+    display: flex; align-items: center; gap: var(--space-3);
+    font-family: var(--font-sans);
+  }
+  .cn-btn {
+    padding: 0.4rem 0.7rem; border: 1px solid var(--border);
+    border-radius: var(--radius-sm); white-space: nowrap; color: var(--accent);
+  }
+  .cn-btn:hover { background: var(--surface-2); }
+  .cn-disabled { color: var(--text-muted); opacity: 0.5; }
+  .cn-select {
+    flex: 1; min-width: 0; padding: 0.4rem 0.6rem;
+    background: var(--surface); color: var(--text);
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    font-family: var(--font-sans); font-size: var(--step--1);
+  }
+</style>
+
+<script>
+  document.querySelectorAll('.cn-select').forEach((el) => {
+    const sel = el as HTMLSelectElement;
+    sel.addEventListener('change', () => {
+      const base = sel.dataset.base;
+      if (base) location.href = `${base}/${sel.value}`;
+    });
+  });
+</script>
