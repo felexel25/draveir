@@ -239,11 +239,11 @@ Slice 0: pequeño · Slice 1: mediano · Slice 2: mediano · Slice 3: pequeño-m
 3. **Sin cuentas** — favoritos/historial/continuar en `localStorage`; elimina superficie OWASP de login. *(Aprobado)*
 4. **Astro** como framework — cero JS por defecto, ideal para lectura/SEO. *(Propuesto, aprobado en arquitectura)*
 5. **Spec vivo + iteración** en vez de 18 documentos en cascada. *(Aprobado)*
-6. **Descartar anti-copia dañino** (deshabilitar selección/clic-derecho/DevTools) por ROI negativo. *(Propuesto — pendiente de confirmación explícita del autor)*
+6. **Descartar anti-copia dañino** (deshabilitar selección/clic-derecho/DevTools) por ROI negativo. *(Aprobado)*
+7. **Idioma:** solo español; sin i18n. *(Aprobado)*
+8. **Hosting inicial:** subdominio gratuito `*.pages.dev`; sin dominio propio por ahora. *(Aprobado)*
 
 ---
 
 ## Preguntas abiertas
-- Confirmar decisión #6 (descartar anti-copia dañino).
-- Nombre de dominio (si habrá uno) o subdominio de Cloudflare Pages inicialmente.
-- Idioma/i18n: ¿solo español por ahora? (asumido: sí).
+- Ninguna pendiente. Todas las decisiones de arquitectura están cerradas.
