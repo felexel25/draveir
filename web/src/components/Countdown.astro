@@ -8,7 +8,7 @@ const { novelSlug, chapterSlug, unlocksAt } = Astro.props;
 const human = new Date(unlocksAt).toLocaleString('es', {
   dateStyle: 'long',
   timeStyle: 'short',
-  timeZone: 'America/Bogota',
+  timeZone: 'America/Panama',
 });
 ---
 <div class="locked" data-novel={novelSlug} data-chapter={chapterSlug} data-unlocks={unlocksAt}>
