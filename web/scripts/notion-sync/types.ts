@@ -19,7 +19,7 @@ export interface ChapterMeta {
   novelSlug: string;
   number: number;
   title: string;
-  slug: string;
+  chapterSlug: string;
   publishedAt: string; // ISO 8601
 }
 

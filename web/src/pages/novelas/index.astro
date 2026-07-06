@@ -1,0 +1,26 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+const novels = (await getCollection('novels')).sort((a, b) =>
+  a.data.title.localeCompare(b.data.title, 'es'),
+);
+---
+
+<BaseLayout title="Novelas — Draveir">
+  <main class="container">
+    <h1>Novelas</h1>
+    <ul class="novel-grid">
+      {novels.map((n) => (
+        <li class="novel-card">
+          <a href={`/novela/${n.data.slug}`}>
+            <span class="cover" aria-hidden="true">{n.data.title.charAt(0)}</span>
+            <h2>{n.data.title}</h2>
+            <p>{n.data.synopsis}</p>
+            <span class="status">{n.data.status}</span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </main>
+</BaseLayout>

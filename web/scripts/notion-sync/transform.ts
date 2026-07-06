@@ -42,7 +42,7 @@ export function parseChapterMeta(
     novelSlug,
     number,
     title: plainText(p['Título']),
-    slug: chapterSlug(number),
+    chapterSlug: chapterSlug(number),
     publishedAt: p['Fecha de publicación']?.date?.start ?? '',
   };
 }

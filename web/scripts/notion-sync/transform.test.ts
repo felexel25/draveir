@@ -63,7 +63,7 @@ describe('parseChapterMeta', () => {
       novelSlug: 'el-heraldo-gris',
       number: 1,
       title: 'Capítulo 1: La carta',
-      slug: 'capitulo-1',
+      chapterSlug: 'capitulo-1',
       publishedAt: '2026-06-01T09:00:00.000-05:00',
     });
   });

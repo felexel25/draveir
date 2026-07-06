@@ -26,10 +26,10 @@ export async function writeContent(novels: NovelData[], chapters: ChapterData[])
       novelSlug: c.novelSlug,
       number: c.number,
       title: c.title,
-      slug: c.slug,
+      chapterSlug: c.chapterSlug,
       publishedAt: c.publishedAt,
     });
-    const file = join(CHAPTERS_DIR, `${c.novelSlug}--${c.slug}.md`);
+    const file = join(CHAPTERS_DIR, `${c.novelSlug}--${c.chapterSlug}.md`);
     await writeFile(file, `${fm}\n${c.bodyMarkdown}\n`);
   }
 }
