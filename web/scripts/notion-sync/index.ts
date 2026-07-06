@@ -1,3 +1,4 @@
+import './env'; // debe ir primero: carga .env antes de que notion.ts lea el token
 import { fetchPublishedNovels, fetchNovelSlugMap, fetchPublishedChapters } from './notion';
 import { writeContent } from './writeContent';
 
