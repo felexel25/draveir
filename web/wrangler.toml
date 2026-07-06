@@ -1,0 +1,10 @@
+name = "draveir"
+compatibility_date = "2026-07-01"
+pages_build_output_dir = "dist"
+
+# El texto de los capítulos bloqueados vive aquí. El id se rellena tras crear el
+# namespace (wrangler kv namespace create draveir-locked). En producción, además,
+# hay que enlazar este binding en Pages → Settings → Functions → KV bindings.
+[[kv_namespaces]]
+binding = "LOCKED_CHAPTERS"
+id = "REEMPLAZAR_CON_ID_DEL_NAMESPACE"

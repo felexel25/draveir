@@ -11,6 +11,9 @@ jobs:
     defaults:
       run:
         working-directory: web
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -24,4 +27,9 @@ jobs:
       - run: npm run sync
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+      # Sube el texto de capítulos bloqueados a KV. Solo corre cuando el token
+      # de Cloudflare está configurado (antes del setup, se omite sin fallar).
+      - name: Subir capítulos bloqueados a KV
+        if: env.CLOUDFLARE_API_TOKEN != ''
+        run: npm run kv:put
       - run: npm run build
