@@ -1,0 +1,36 @@
+---
+import { getCollection, getEntry } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+export async function getStaticPaths() {
+  const novels = await getCollection('novels');
+  return novels.map((n) => ({ params: { slug: n.data.slug } }));
+}
+
+const { slug } = Astro.params;
+const novel = await getEntry('novels', slug);
+if (!novel) return Astro.redirect('/novelas');
+
+const chapters = (await getCollection('chapters'))
+  .filter((c) => c.data.novelSlug === slug)
+  .sort((a, b) => a.data.number - b.data.number);
+---
+
+<BaseLayout title={`${novel.data.title} — Draveir`}>
+  <main class="container">
+    <a href="/novelas">← Novelas</a>
+    <h1>{novel.data.title}</h1>
+    <p>{novel.data.synopsis}</p>
+    <div class="tags">
+      {novel.data.categories.map((c) => <span class="tag">{c}</span>)}
+    </div>
+    <h2>Capítulos</h2>
+    <ol class="chapter-list">
+      {chapters.map((c) => (
+        <li>
+          <a href={`/novela/${slug}/${c.data.chapterSlug}`}>{c.data.title}</a>
+        </li>
+      ))}
+    </ol>
+  </main>
+</BaseLayout>

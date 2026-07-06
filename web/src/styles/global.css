@@ -27,3 +27,53 @@ body {
   margin-inline: auto;
   padding: 2rem 1.25rem;
 }
+
+a { color: inherit; }
+
+.novel-grid {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+
+.novel-card a {
+  display: block;
+  text-decoration: none;
+}
+
+.novel-card .cover {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 3 / 4;
+  border-radius: 8px;
+  font-size: 3rem;
+  font-weight: bold;
+  background: linear-gradient(135deg, #6b7280, #374151);
+  color: #fff;
+  margin-bottom: 0.75rem;
+}
+
+.tag, .status {
+  display: inline-block;
+  font-size: 0.8rem;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(127, 127, 127, 0.2);
+  margin-right: 0.4rem;
+}
+
+.chapter-list a { line-height: 2; }
+
+.reading article {
+  font-size: 1.125rem;
+}
+
+.chapter-nav {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 3rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(127, 127, 127, 0.3);
+}
