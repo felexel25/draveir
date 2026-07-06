@@ -10,6 +10,8 @@
     "check": "astro check",
     "sync": "tsx scripts/notion-sync/index.ts",
     "kv:put": "wrangler kv bulk put ./.kv-bulk.json --namespace-id $CLOUDFLARE_KV_NAMESPACE_ID",
+    "wm:key": "node -e \"console.log(require('crypto').randomBytes(32).toString('base64'))\"",
+    "wm:decode": "node scripts/decode-watermark.mjs",
     "test": "vitest run"
   },
   "dependencies": {
