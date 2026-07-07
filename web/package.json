@@ -12,6 +12,7 @@
     "kv:put": "wrangler kv bulk put ./.kv-bulk.json --namespace-id $CLOUDFLARE_KV_NAMESPACE_ID --remote",
     "wm:key": "node -e \"console.log(require('crypto').randomBytes(32).toString('base64'))\"",
     "wm:decode": "node scripts/decode-watermark.mjs",
+    "studio": "node scripts/admin/server.mjs",
     "test": "vitest run"
   },
   "dependencies": {
