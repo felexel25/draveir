@@ -18,7 +18,8 @@ const CHAPTERS_DB = '4ac20247-41d9-46b7-b9ca-cae507c3eaf2';
 const PORT = 4477;
 const REPO = 'felexel25/draveir';
 const WORKFLOW = 'Sincronización programada';
-const IDLE_MS = 12000; // sin heartbeat del navegador → el servidor se apaga
+const IDLE_MS = 20 * 60 * 1000; // red de seguridad: se apaga tras 20 min sin señal
+const BYE_GRACE_MS = 4000;      // al cerrar la pestaña, apaga tras esta gracia (salvo refresco)
 
 // ── Lógica pura (cubierta por --selfcheck) ────────────────────────────────
 const CHAPTER_ESTADOS = ['Publicado', 'Programado', 'Borrador'];
@@ -190,6 +191,12 @@ const hint = (msg) => {
 
 let lastPing = Date.now();
 
+function shutdown(reason) {
+  console.log(`\n  ${reason} — deteniendo Draveir Studio.`);
+  server.close(() => process.exit(0));
+  setTimeout(() => process.exit(0), 4000).unref();
+}
+
 const server = createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
   const path = url.pathname;
@@ -200,6 +207,12 @@ const server = createServer(async (req, res) => {
       return res.end(html);
     }
     if (path === '/api/ping') { lastPing = Date.now(); return sendJson(res, 200, { ok: true }); }
+    // Pestaña cerrada: apaga tras la gracia, salvo que llegue un ping (refresco/reapertura).
+    if (path === '/api/bye') {
+      const byeAt = Date.now();
+      setTimeout(() => { if (lastPing <= byeAt) shutdown('Pestaña cerrada'); }, BYE_GRACE_MS).unref();
+      return sendJson(res, 200, { ok: true });
+    }
     if (req.method === 'GET' && path === '/api/novels') return sendJson(res, 200, { novels: await listNovels() });
     if (req.method === 'GET' && path === '/api/novel') return sendJson(res, 200, await getNovel(url.searchParams.get('id')));
     if (req.method === 'GET' && path === '/api/chapters') return sendJson(res, 200, { chapters: await listChapters(url.searchParams.get('novelId')) });
@@ -213,14 +226,10 @@ const server = createServer(async (req, res) => {
   }
 });
 
-// Se apaga cuando el navegador deja de enviar heartbeat (pestaña cerrada).
+// Red de seguridad: si no hay señal en mucho tiempo (pestaña abandonada/congelada), se apaga.
 setInterval(() => {
-  if (Date.now() - lastPing > IDLE_MS) {
-    console.log('\n  Pestaña cerrada — deteniendo Draveir Studio.');
-    server.close(() => process.exit(0));
-    setTimeout(() => process.exit(0), 1000).unref();
-  }
-}, 4000).unref();
+  if (Date.now() - lastPing > IDLE_MS) shutdown('Inactividad');
+}, 30000).unref();
 
 server.listen(PORT, () => {
   console.log(`\n  Draveir Studio  →  http://localhost:${PORT}\n  (se cierra solo al cerrar la pestaña)\n`);

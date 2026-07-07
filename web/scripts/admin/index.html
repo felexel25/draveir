@@ -164,9 +164,13 @@ const CATS = ['Fantasía','Romance','Ciencia ficción','Aventura','Misterio','Te
 const $ = (id) => document.getElementById(id);
 let editingChapterId = null, editingNovelId = null;
 
-// Heartbeat: si la pestaña se cierra, el servidor se apaga solo.
+// Heartbeat: mantiene vivo el servidor mientras la pestaña esté abierta;
+// al cerrarla, un beacon lo apaga (~4 s). Un refresco no lo apaga.
 const ping = () => fetch('/api/ping').catch(()=>{});
-ping(); setInterval(ping, 3000);
+ping(); setInterval(ping, 15000);
+document.addEventListener('visibilitychange', () => { if(!document.hidden) ping(); });
+window.addEventListener('focus', ping);
+window.addEventListener('pagehide', () => { try{ navigator.sendBeacon('/api/bye'); }catch(e){} });
 
 function showResult(el, kind, html){ el.className = 'result show ' + kind; el.innerHTML = html; }
 async function getJSON(url){ const r = await fetch(url); const d = await r.json(); if(!r.ok||d.error) throw new Error(d.error||('Error '+r.status)); return d; }
