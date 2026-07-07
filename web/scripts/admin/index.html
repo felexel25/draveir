@@ -12,19 +12,18 @@
   }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--text);
-       font-family:ui-sans-serif,system-ui,"Segoe UI",sans-serif;line-height:1.5;
-       padding:28px 18px 60px}
+       font-family:ui-sans-serif,system-ui,"Segoe UI",sans-serif;line-height:1.5;padding:28px 18px 60px}
   .wrap{max-width:900px;margin:0 auto}
   header{display:flex;align-items:center;gap:12px;margin-bottom:6px}
   header .mark{color:var(--brass);font-size:1.5rem;line-height:1}
-  header h1{font-family:ui-serif,Georgia,"Times New Roman",serif;font-weight:600;font-size:1.5rem;margin:0;letter-spacing:.01em}
+  header h1{font-family:ui-serif,Georgia,serif;font-weight:600;font-size:1.5rem;margin:0}
   .lede{color:var(--muted);font-size:.92rem;margin:0 0 24px}
   .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
   @media(max-width:720px){.grid{grid-template-columns:1fr}}
   .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:20px}
   .card h2{font-family:ui-serif,Georgia,serif;font-weight:600;font-size:1.12rem;margin:0 0 4px}
   .card .hint{color:var(--muted);font-size:.82rem;margin:0 0 16px}
-  label{display:block;font-size:.8rem;color:var(--muted);margin:14px 0 5px;letter-spacing:.02em}
+  label{display:block;font-size:.8rem;color:var(--muted);margin:14px 0 5px}
   input[type=text],input[type=number],input[type=date],textarea,select{
     width:100%;background:var(--panel2);border:1px solid var(--line2);border-radius:8px;
     color:var(--text);padding:9px 11px;font:inherit;font-size:.92rem}
@@ -32,114 +31,124 @@
   textarea{resize:vertical;min-height:74px}
   .row{display:flex;gap:12px}.row>*{flex:1}
   .seg{display:flex;gap:6px;margin-top:5px}
-  .seg label{margin:0;flex:1}
-  .seg input{position:absolute;opacity:0;pointer-events:none}
-  .seg span{display:block;text-align:center;padding:8px;border:1px solid var(--line2);border-radius:8px;
-            color:var(--muted);font-size:.85rem;cursor:pointer}
+  .seg label{margin:0;flex:1}.seg input{position:absolute;opacity:0;pointer-events:none}
+  .seg span{display:block;text-align:center;padding:8px;border:1px solid var(--line2);border-radius:8px;color:var(--muted);font-size:.85rem;cursor:pointer}
   .seg input:checked + span{border-color:var(--brass);color:var(--text);background:#2a2418}
-  .chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:6px}
-  .chips label{margin:0}
+  .chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:6px}.chips label{margin:0}
   .chips input{position:absolute;opacity:0;pointer-events:none}
-  .chips span{display:block;padding:5px 11px;border:1px solid var(--line2);border-radius:999px;
-              color:var(--muted);font-size:.8rem;cursor:pointer}
+  .chips span{display:block;padding:5px 11px;border:1px solid var(--line2);border-radius:999px;color:var(--muted);font-size:.8rem;cursor:pointer}
   .chips input:checked + span{border-color:var(--azure);color:var(--text);background:#182636}
   .checks{display:flex;gap:18px;margin-top:14px}
   .checks label{display:flex;align-items:center;gap:7px;margin:0;color:var(--text);font-size:.86rem;cursor:pointer}
   .checks input{width:16px;height:16px;accent-color:var(--brass)}
-  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;
-       border:1px solid var(--line2);background:var(--panel2);color:var(--text);
-       padding:10px 16px;border-radius:9px;font:inherit;font-size:.9rem;cursor:pointer}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--line2);
+       background:var(--panel2);color:var(--text);padding:10px 16px;border-radius:9px;font:inherit;font-size:.9rem;cursor:pointer}
   .btn:hover{border-color:var(--brass)}
   .btn.primary{background:var(--brass);border-color:var(--brass);color:#1a140a;font-weight:600}
   .btn.primary:hover{filter:brightness(1.06)}
+  .btn.small{padding:5px 10px;font-size:.78rem}
+  .btn.danger:hover{border-color:var(--red);color:var(--red)}
   .btn:disabled{opacity:.5;cursor:default}
   .submit{margin-top:20px;width:100%}
+  .editbar{display:none;align-items:center;justify-content:space-between;gap:8px;margin-top:14px;
+           padding:8px 12px;border:1px solid var(--azure);background:#152232;border-radius:8px;font-size:.82rem;color:var(--azure)}
+  .editbar.show{display:flex}
+  .editbar a{color:var(--muted);cursor:pointer;text-decoration:underline}
   .result{margin-top:14px;font-size:.86rem;border-radius:8px;padding:0}
   .result.show{padding:12px 14px}
   .result.ok{background:#16261d;border:1px solid #2f5a41;color:var(--green)}
   .result.err{background:#2a1a1a;border:1px solid #5a3030;color:var(--red);white-space:pre-wrap}
-  .result a{color:var(--text);text-decoration:none;border-bottom:1px solid var(--brass);margin-left:6px}
+  .result a{color:var(--text);border-bottom:1px solid var(--brass);margin-left:6px;text-decoration:none}
   .hidden{display:none}
+  .manage{margin-top:18px}
+  .chlist{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+  .chlist li{display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--line2);
+             border-radius:8px;padding:8px 12px;font-size:.86rem}
+  .chlist .n{color:var(--muted);min-width:2.4em;font-variant-numeric:tabular-nums}
+  .chlist .t{flex:1}
+  .chlist .est{font-size:.72rem;color:var(--muted);border:1px solid var(--line2);border-radius:999px;padding:2px 8px}
+  .chlist .est.prog{color:var(--brass);border-color:#4a3f22}
+  .novel-actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
   .publish{margin-top:22px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
            padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
   .publish p{margin:0;color:var(--muted);font-size:.85rem;max-width:52ch}
-  .pub-status{font-size:.82rem;color:var(--muted)}
+  .pub-status{font-size:.82rem;color:var(--muted);margin-top:6px}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header><span class="mark" aria-hidden="true">✦</span><h1>Draveir Studio</h1></header>
-  <p class="lede">Crea la ficha en Notion con sus metadatos; luego abre la página y pega ahí el contenido.</p>
+  <p class="lede">Crea, edita y elimina las fichas de Notion. El contenido (texto) lo escribes en Notion.</p>
 
   <div class="grid">
     <!-- CAPÍTULO -->
     <section class="card">
-      <h2>Nuevo capítulo</h2>
-      <p class="hint">Crea la fila en la tabla <strong>Capítulos</strong>.</p>
+      <h2 id="ch-h2">Nuevo capítulo</h2>
+      <p class="hint">Tabla <strong>Capítulos</strong>.</p>
       <form id="chapForm">
         <label for="ch-novela">Novela</label>
         <select id="ch-novela" required><option value="">Cargando…</option></select>
-
         <div class="row">
-          <div>
-            <label for="ch-num">Número</label>
-            <input type="number" id="ch-num" step="1" required placeholder="1">
-          </div>
-          <div style="flex:2">
-            <label for="ch-title">Título</label>
-            <input type="text" id="ch-title" required placeholder="Capítulo 1 — El despertar">
-          </div>
+          <div><label for="ch-num">Número</label><input type="number" id="ch-num" step="1" required placeholder="1"></div>
+          <div style="flex:2"><label for="ch-title">Título</label><input type="text" id="ch-title" required placeholder="Capítulo 1 — El despertar"></div>
         </div>
-
         <label>Estado</label>
         <div class="seg" id="ch-estado">
           <label><input type="radio" name="estado" value="Publicado" checked><span>Publicado</span></label>
           <label><input type="radio" name="estado" value="Programado"><span>Programado</span></label>
           <label><input type="radio" name="estado" value="Borrador"><span>Borrador</span></label>
         </div>
-
         <div id="ch-fecha-wrap" class="hidden">
-          <label for="ch-fecha">Fecha de publicación <span style="color:var(--muted)">· se abre a las 7 PM Panamá</span></label>
+          <label for="ch-fecha">Fecha <span style="color:var(--muted)">· se abre 7 PM Panamá</span></label>
           <input type="date" id="ch-fecha">
         </div>
-
-        <button class="btn primary submit" type="submit">Crear capítulo</button>
+        <div class="editbar" id="ch-editbar"><span>Editando capítulo</span><a id="ch-cancel">cancelar</a></div>
+        <button class="btn primary submit" type="submit" id="ch-submit">Crear capítulo</button>
         <div class="result" id="ch-result"></div>
       </form>
     </section>
 
     <!-- NOVELA -->
     <section class="card">
-      <h2>Nueva novela / historia</h2>
-      <p class="hint">Crea la fila en la tabla <strong>Novelas</strong>.</p>
+      <h2 id="nv-h2">Nueva novela / historia</h2>
+      <p class="hint">Tabla <strong>Novelas</strong>.</p>
       <form id="novForm">
         <label for="nv-title">Título</label>
         <input type="text" id="nv-title" required placeholder="Tarsis">
-
-        <label for="nv-slug">Slug <span style="color:var(--muted)">· opcional, ej. tarsis</span></label>
+        <label for="nv-slug">Slug <span style="color:var(--muted)">· opcional</span></label>
         <input type="text" id="nv-slug" placeholder="se genera del título si lo dejas vacío">
-
         <label for="nv-syn">Sinopsis</label>
         <textarea id="nv-syn" placeholder="Una línea o dos que enganchen…"></textarea>
-
         <label for="nv-estado">Estado</label>
-        <select id="nv-estado">
-          <option>En progreso</option><option>Completa</option><option>Pausada</option>
-        </select>
-
+        <select id="nv-estado"><option>En progreso</option><option>Completa</option><option>Pausada</option></select>
         <label>Categorías</label>
         <div class="chips" id="nv-cats"></div>
-
         <div class="checks">
           <label><input type="checkbox" id="nv-pub" checked> Publicada</label>
           <label><input type="checkbox" id="nv-dest"> Destacada</label>
         </div>
-
-        <button class="btn primary submit" type="submit">Crear novela</button>
+        <div class="editbar" id="nv-editbar"><span>Editando novela</span><a id="nv-cancel">cancelar</a></div>
+        <button class="btn primary submit" type="submit" id="nv-submit">Crear novela</button>
         <div class="result" id="nv-result"></div>
       </form>
     </section>
   </div>
+
+  <!-- GESTIONAR -->
+  <section class="card manage">
+    <h2>Gestionar contenido</h2>
+    <p class="hint">Elige una novela para editarla o ver y gestionar sus capítulos.</p>
+    <label for="mg-novela">Novela</label>
+    <select id="mg-novela"><option value="">Elige…</option></select>
+    <div id="mg-panel" class="hidden">
+      <div class="novel-actions">
+        <button class="btn small" id="mg-edit-novel">Editar esta novela</button>
+        <button class="btn small danger" id="mg-del-novel">Eliminar novela</button>
+      </div>
+      <ul class="chlist" id="mg-chapters"></ul>
+      <div class="result" id="mg-result"></div>
+    </div>
+  </section>
 
   <div class="publish">
     <p>Al terminar, publica: sincroniza Notion con el sitio y reconstruye. Sin esto, los cambios aparecen en el próximo ciclo automático (cada 6 h).</p>
@@ -153,60 +162,88 @@
 <script>
 const CATS = ['Fantasía','Romance','Ciencia ficción','Aventura','Misterio','Terror','Acción'];
 const $ = (id) => document.getElementById(id);
+let editingChapterId = null, editingNovelId = null;
+
+// Heartbeat: si la pestaña se cierra, el servidor se apaga solo.
+const ping = () => fetch('/api/ping').catch(()=>{});
+ping(); setInterval(ping, 3000);
 
 function showResult(el, kind, html){ el.className = 'result show ' + kind; el.innerHTML = html; }
+async function getJSON(url){ const r = await fetch(url); const d = await r.json(); if(!r.ok||d.error) throw new Error(d.error||('Error '+r.status)); return d; }
 async function postJSON(url, body){
   const r = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
-  const data = await r.json().catch(()=>({error:'Respuesta no válida del servidor.'}));
-  if(!r.ok || data.error) throw new Error(data.error || ('Error '+r.status));
-  return data;
+  const d = await r.json().catch(()=>({error:'Respuesta no válida.'}));
+  if(!r.ok || d.error) throw new Error(d.error || ('Error '+r.status));
+  return d;
 }
 
-// Categorías como chips
-$('nv-cats').innerHTML = CATS.map(c =>
-  `<label><input type="checkbox" value="${c}"><span>${c}</span></label>`).join('');
+$('nv-cats').innerHTML = CATS.map(c => `<label><input type="checkbox" value="${c}"><span>${c}</span></label>`).join('');
 
-// Cargar novelas
-(async () => {
-  const sel = $('ch-novela');
+async function loadNovelSelectors(){
   try{
-    const {novels} = await (await fetch('/api/novels')).json();
-    if(!novels || !novels.length){ sel.innerHTML = '<option value="">(no hay novelas aún)</option>'; return; }
-    sel.innerHTML = novels.map(n => `<option value="${n.id}">${n.title}</option>`).join('');
-  }catch(e){ sel.innerHTML = '<option value="">Error al cargar</option>'; }
-})();
+    const {novels} = await getJSON('/api/novels');
+    const opts = novels.map(n => `<option value="${n.id}">${n.title}</option>`).join('');
+    $('ch-novela').innerHTML = novels.length ? opts : '<option value="">(no hay novelas)</option>';
+    $('mg-novela').innerHTML = '<option value="">Elige…</option>' + opts;
+  }catch(e){ $('ch-novela').innerHTML = '<option value="">Error al cargar</option>'; }
+}
+loadNovelSelectors();
 
-// Estado → mostrar fecha
+// ── Estado → fecha ──
 $('ch-estado').addEventListener('change', () => {
   const prog = document.querySelector('input[name=estado]:checked').value === 'Programado';
   $('ch-fecha-wrap').classList.toggle('hidden', !prog);
 });
 
-// Crear capítulo
+// ── Reset de modos ──
+function resetChapterForm(){
+  editingChapterId = null;
+  $('ch-h2').textContent = 'Nuevo capítulo';
+  $('ch-submit').textContent = 'Crear capítulo';
+  $('ch-editbar').classList.remove('show');
+  $('chapForm').reset();
+  $('ch-fecha-wrap').classList.add('hidden');
+}
+function resetNovelForm(){
+  editingNovelId = null;
+  $('nv-h2').textContent = 'Nueva novela / historia';
+  $('nv-submit').textContent = 'Crear novela';
+  $('nv-editbar').classList.remove('show');
+  $('novForm').reset();
+  document.querySelectorAll('#nv-cats input').forEach(i => i.checked = false);
+}
+$('ch-cancel').addEventListener('click', () => { resetChapterForm(); $('ch-result').className='result'; });
+$('nv-cancel').addEventListener('click', () => { resetNovelForm(); $('nv-result').className='result'; });
+
+// ── Crear / editar capítulo ──
 $('chapForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const btn = e.submitter; btn.disabled = true;
   try{
     const body = {
+      pageId: editingChapterId || undefined,
       novelId: $('ch-novela').value,
       title: $('ch-title').value,
       number: $('ch-num').value,
       estado: document.querySelector('input[name=estado]:checked').value,
       fecha: $('ch-fecha').value || null,
     };
-    const {url} = await postJSON('/api/chapter', body);
-    showResult($('ch-result'), 'ok', `Capítulo creado. <a href="${url}" target="_blank" rel="noopener">Abrir en Notion →</a>`);
-    $('ch-title').value = ''; $('ch-num').value = '';
+    const {url, updated} = await postJSON('/api/chapter', body);
+    showResult($('ch-result'), 'ok', `${updated?'Capítulo actualizado':'Capítulo creado'}. <a href="${url}" target="_blank" rel="noopener">Abrir en Notion →</a>`);
+    const wasNovel = $('ch-novela').value;
+    resetChapterForm();
+    if ($('mg-novela').value === wasNovel) loadChapters(wasNovel);
   }catch(err){ showResult($('ch-result'), 'err', err.message); }
   finally{ btn.disabled = false; }
 });
 
-// Crear novela
+// ── Crear / editar novela ──
 $('novForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const btn = e.submitter; btn.disabled = true;
   try{
     const body = {
+      pageId: editingNovelId || undefined,
       title: $('nv-title').value,
       slug: $('nv-slug').value || null,
       synopsis: $('nv-syn').value || null,
@@ -215,23 +252,95 @@ $('novForm').addEventListener('submit', async (e) => {
       publicada: $('nv-pub').checked,
       destacada: $('nv-dest').checked,
     };
-    const {url} = await postJSON('/api/novel', body);
-    showResult($('nv-result'), 'ok', `Novela creada. <a href="${url}" target="_blank" rel="noopener">Abrir en Notion →</a>`);
-    $('nv-title').value=''; $('nv-slug').value=''; $('nv-syn').value='';
+    const {url, updated} = await postJSON('/api/novel', body);
+    showResult($('nv-result'), 'ok', `${updated?'Novela actualizada':'Novela creada'}. <a href="${url}" target="_blank" rel="noopener">Abrir en Notion →</a>`);
+    resetNovelForm();
+    await loadNovelSelectors();
   }catch(err){ showResult($('nv-result'), 'err', err.message); }
   finally{ btn.disabled = false; }
 });
 
-// Publicar
+// ── Gestionar ──
+async function loadChapters(novelId){
+  const ul = $('mg-chapters');
+  ul.innerHTML = '<li style="border:none;background:none;color:var(--muted)">Cargando…</li>';
+  try{
+    const {chapters} = await getJSON('/api/chapters?novelId=' + encodeURIComponent(novelId));
+    if(!chapters.length){ ul.innerHTML = '<li style="border:none;background:none;color:var(--muted)">Sin capítulos.</li>'; return; }
+    ul.innerHTML = '';
+    for(const c of chapters){
+      const li = document.createElement('li');
+      li.innerHTML = `<span class="n">${c.number ?? '·'}</span><span class="t"></span>
+        <span class="est ${c.estado==='Programado'?'prog':''}">${c.estado||''}</span>
+        <button class="btn small">Editar</button><button class="btn small danger">Eliminar</button>`;
+      li.querySelector('.t').textContent = c.title;
+      const [edit, del] = li.querySelectorAll('button');
+      edit.onclick = () => editChapter(novelId, c);
+      del.onclick = () => deleteItem(c.id, `el capítulo “${c.title}”`, () => loadChapters(novelId));
+      ul.appendChild(li);
+    }
+  }catch(e){ ul.innerHTML = ''; showResult($('mg-result'),'err', e.message); }
+}
+
+$('mg-novela').addEventListener('change', () => {
+  const id = $('mg-novela').value;
+  $('mg-panel').classList.toggle('hidden', !id);
+  $('mg-result').className = 'result';
+  if(id) loadChapters(id);
+});
+
+function editChapter(novelId, c){
+  editingChapterId = c.id;
+  $('ch-novela').value = novelId;
+  $('ch-num').value = c.number ?? '';
+  $('ch-title').value = c.title;
+  const radio = document.querySelector(`input[name=estado][value="${c.estado}"]`);
+  if(radio) radio.checked = true;
+  const prog = c.estado === 'Programado';
+  $('ch-fecha-wrap').classList.toggle('hidden', !prog);
+  $('ch-fecha').value = prog ? c.fecha : '';
+  $('ch-h2').textContent = 'Editar capítulo';
+  $('ch-submit').textContent = 'Guardar cambios';
+  $('ch-editbar').classList.add('show');
+  $('chapForm').scrollIntoView({behavior:'smooth', block:'center'});
+}
+
+$('mg-edit-novel').addEventListener('click', async () => {
+  try{
+    const n = await getJSON('/api/novel?id=' + encodeURIComponent($('mg-novela').value));
+    editingNovelId = n.id;
+    $('nv-title').value = n.title; $('nv-slug').value = n.slug; $('nv-syn').value = n.synopsis;
+    if(n.estado) $('nv-estado').value = n.estado;
+    document.querySelectorAll('#nv-cats input').forEach(i => i.checked = n.categorias.includes(i.value));
+    $('nv-pub').checked = n.publicada; $('nv-dest').checked = n.destacada;
+    $('nv-h2').textContent = 'Editar novela';
+    $('nv-submit').textContent = 'Guardar cambios';
+    $('nv-editbar').classList.add('show');
+    $('novForm').scrollIntoView({behavior:'smooth', block:'center'});
+  }catch(e){ showResult($('mg-result'),'err', e.message); }
+});
+
+$('mg-del-novel').addEventListener('click', () => {
+  const sel = $('mg-novela');
+  const name = sel.options[sel.selectedIndex].text;
+  deleteItem(sel.value, `la novela “${name}” (sus capítulos NO se borran)`, async () => {
+    $('mg-panel').classList.add('hidden'); sel.value = ''; await loadNovelSelectors();
+  });
+});
+
+async function deleteItem(pageId, label, after){
+  if(!confirm(`¿Eliminar ${label}?\n\nVa a la papelera de Notion (recuperable 30 días).`)) return;
+  try{ await postJSON('/api/delete', {pageId}); showResult($('mg-result'),'ok','Eliminado (en papelera de Notion).'); if(after) await after(); }
+  catch(e){ showResult($('mg-result'),'err', e.message); }
+}
+
+// ── Publicar ──
 $('pubBtn').addEventListener('click', async () => {
   const btn = $('pubBtn'), st = $('pubStatus');
   btn.disabled = true; st.textContent = 'Disparando sincronización…'; st.style.color = 'var(--muted)';
-  try{
-    await postJSON('/api/publish', {});
-    st.textContent = '✓ Sincronización lanzada. El sitio se reconstruye en ~1 min.'; st.style.color = 'var(--green)';
-  }catch(err){
-    st.textContent = 'No se pudo con gh. Publica manual: GitHub → Actions → Run workflow.'; st.style.color = 'var(--red)';
-  }finally{ btn.disabled = false; }
+  try{ await postJSON('/api/publish', {}); st.textContent = '✓ Sincronización lanzada. El sitio se reconstruye en ~1 min.'; st.style.color = 'var(--green)'; }
+  catch(err){ st.textContent = 'No se pudo con gh. Publica manual: GitHub → Actions → Run workflow.'; st.style.color = 'var(--red)'; }
+  finally{ btn.disabled = false; }
 });
 </script>
 </body>

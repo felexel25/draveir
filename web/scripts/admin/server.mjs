@@ -1,8 +1,8 @@
-// Draveir Studio — panel local para crear filas de metadatos en las tablas de
-// Notion (Capítulos / Novelas). No lee ni toca el contenido: crea la página
-// vacía y te da el enlace para que pegues el texto en Notion.
+// Draveir Studio — panel local para gestionar las fichas de metadatos en las
+// tablas de Notion (Capítulos / Novelas). Crea, edita y elimina filas; el
+// contenido (texto) se escribe en Notion. No lee ni copia el cuerpo.
 //
-// Uso:  node scripts/admin/server.mjs         (arranca en http://localhost:4477)
+// Uso:  node scripts/admin/server.mjs         (http://localhost:4477)
 //       node scripts/admin/server.mjs --selfcheck   (verifica la lógica, sin red)
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
@@ -18,6 +18,7 @@ const CHAPTERS_DB = '4ac20247-41d9-46b7-b9ca-cae507c3eaf2';
 const PORT = 4477;
 const REPO = 'felexel25/draveir';
 const WORKFLOW = 'Sincronización programada';
+const IDLE_MS = 12000; // sin heartbeat del navegador → el servidor se apaga
 
 // ── Lógica pura (cubierta por --selfcheck) ────────────────────────────────
 const CHAPTER_ESTADOS = ['Publicado', 'Programado', 'Borrador'];
@@ -34,33 +35,28 @@ export function chapterProps({ novelId, title, number, estado, fecha }) {
   if (!novelId) throw new Error('Elige la novela.');
   if (!Number.isFinite(Number(number))) throw new Error('El número no es válido.');
   if (!CHAPTER_ESTADOS.includes(estado)) throw new Error('Estado inválido.');
-  const props = {
+  if (estado === 'Programado' && !fecha) throw new Error('Un capítulo programado necesita fecha.');
+  return {
     'Título': { title: [{ text: { content: title.trim() } }] },
     'Novela': { relation: [{ id: novelId }] },
     'Número': { number: Number(number) },
     'Estado': { select: { name: estado } },
+    // Siempre presente: al editar, limpia la fecha si deja de estar programado.
+    'Fecha de publicación': estado === 'Programado' ? { date: { start: unlockDate(fecha) } } : { date: null },
   };
-  if (estado === 'Programado') {
-    if (!fecha) throw new Error('Un capítulo programado necesita fecha.');
-    props['Fecha de publicación'] = { date: { start: unlockDate(fecha) } };
-  }
-  return props;
 }
 
 export function novelProps({ title, slug, synopsis, estado, categorias, publicada, destacada }) {
   if (!title || !title.trim()) throw new Error('Falta el título de la novela.');
-  const props = {
+  return {
     'Título': { title: [{ text: { content: title.trim() } }] },
+    'Sinopsis': { rich_text: synopsis && synopsis.trim() ? [{ text: { content: synopsis.trim() } }] : [] },
+    'Slug': { rich_text: slug && slug.trim() ? [{ text: { content: slug.trim() } }] : [] },
+    'Estado': { select: estado && NOVEL_ESTADOS.includes(estado) ? { name: estado } : null },
+    'Categorías': { multi_select: (Array.isArray(categorias) ? categorias : []).map((name) => ({ name })) },
     'Publicada': { checkbox: !!publicada },
     'Destacada': { checkbox: !!destacada },
   };
-  if (synopsis && synopsis.trim()) props['Sinopsis'] = { rich_text: [{ text: { content: synopsis.trim() } }] };
-  if (slug && slug.trim()) props['Slug'] = { rich_text: [{ text: { content: slug.trim() } }] };
-  if (estado && NOVEL_ESTADOS.includes(estado)) props['Estado'] = { select: { name: estado } };
-  if (Array.isArray(categorias) && categorias.length) {
-    props['Categorías'] = { multi_select: categorias.map((name) => ({ name })) };
-  }
-  return props;
 }
 
 // ── Self-check (sin red) ──────────────────────────────────────────────────
@@ -71,13 +67,14 @@ if (process.argv.includes('--selfcheck')) {
   ok(cp['Número'].number === 3, 'número numérico');
   ok(cp['Título'].title[0].text.content === 'Cap 1', 'título recortado');
   ok(cp['Fecha de publicación'].date.start.endsWith('T19:00:00.000-05:00'), 'fecha programada');
+  ok(chapterProps({ novelId: 'x', title: 'y', number: '1', estado: 'Publicado' })['Fecha de publicación'].date === null, 'publicado limpia fecha');
   let threw = false;
   try { chapterProps({ novelId: 'x', title: 'y', number: '1', estado: 'Programado' }); } catch { threw = true; }
   ok(threw, 'programado sin fecha debe fallar');
-  ok(!chapterProps({ novelId: 'x', title: 'y', number: '1', estado: 'Publicado' })['Fecha de publicación'], 'publicado sin fecha');
-  const np = novelProps({ title: 'Tarsis', categorias: ['Fantasía'], publicada: true, destacada: false });
+  const np = novelProps({ title: 'Tarsis', categorias: ['Fantasía'], publicada: true, destacada: false, estado: 'En progreso' });
   ok(np['Categorías'].multi_select[0].name === 'Fantasía', 'categoría');
   ok(np['Publicada'].checkbox === true, 'publicada');
+  ok(novelProps({ title: 'x', categorias: [] })['Categorías'].multi_select.length === 0, 'sin categorías limpia');
   console.log('selfcheck OK');
   process.exit(0);
 }
@@ -94,31 +91,71 @@ async function getNotion() {
   return notion;
 }
 
-const plainTitle = (page) =>
-  (page.properties?.['Título']?.title ?? []).map((t) => t.plain_text).join('').trim();
+const text = (p) => (p?.title ?? p?.rich_text ?? []).map((t) => t.plain_text).join('').trim();
 
 async function listNovels() {
   const n = await getNotion();
+  const res = await n.databases.query({ database_id: NOVELS_DB, sorts: [{ property: 'Título', direction: 'ascending' }] });
+  return res.results.map((p) => ({ id: p.id, title: text(p.properties['Título']) || '(sin título)' }));
+}
+
+async function getNovel(id) {
+  const n = await getNotion();
+  const p = await n.pages.retrieve({ page_id: id });
+  const P = p.properties;
+  return {
+    id: p.id,
+    title: text(P['Título']),
+    slug: text(P['Slug']),
+    synopsis: text(P['Sinopsis']),
+    estado: P['Estado']?.select?.name ?? '',
+    categorias: (P['Categorías']?.multi_select ?? []).map((o) => o.name),
+    publicada: !!P['Publicada']?.checkbox,
+    destacada: !!P['Destacada']?.checkbox,
+  };
+}
+
+async function listChapters(novelId) {
+  const n = await getNotion();
   const res = await n.databases.query({
-    database_id: NOVELS_DB,
-    sorts: [{ property: 'Título', direction: 'ascending' }],
+    database_id: CHAPTERS_DB,
+    filter: { property: 'Novela', relation: { contains: novelId } },
+    sorts: [{ property: 'Número', direction: 'ascending' }],
   });
-  return res.results.map((p) => ({ id: p.id, title: plainTitle(p) || '(sin título)' }));
+  return res.results.map((p) => ({
+    id: p.id,
+    number: p.properties['Número']?.number ?? null,
+    title: text(p.properties['Título']),
+    estado: p.properties['Estado']?.select?.name ?? '',
+    fecha: (p.properties['Fecha de publicación']?.date?.start ?? '').slice(0, 10),
+  }));
 }
 
-async function createChapter(body) {
+async function upsertChapter(body) {
   const n = await getNotion();
-  const page = await n.pages.create({ parent: { database_id: CHAPTERS_DB }, properties: chapterProps(body) });
-  return { url: page.url };
+  const properties = chapterProps(body);
+  const page = body.pageId
+    ? await n.pages.update({ page_id: body.pageId, properties })
+    : await n.pages.create({ parent: { database_id: CHAPTERS_DB }, properties });
+  return { url: page.url, updated: !!body.pageId };
 }
 
-async function createNovel(body) {
+async function upsertNovel(body) {
   const n = await getNotion();
-  const page = await n.pages.create({ parent: { database_id: NOVELS_DB }, properties: novelProps(body) });
-  return { url: page.url };
+  const properties = novelProps(body);
+  const page = body.pageId
+    ? await n.pages.update({ page_id: body.pageId, properties })
+    : await n.pages.create({ parent: { database_id: NOVELS_DB }, properties });
+  return { url: page.url, updated: !!body.pageId };
 }
 
-// Dispara el workflow de sync. Intenta gh en PATH y en la ruta típica de Windows.
+async function archivePage(pageId) {
+  const n = await getNotion();
+  if (!pageId) throw new Error('Falta el id de la página.');
+  await n.pages.update({ page_id: pageId, archived: true });
+  return { ok: true };
+}
+
 function publish() {
   const run = (bin) =>
     new Promise((res, rej) =>
@@ -146,37 +183,45 @@ const sendJson = (res, code, obj) => {
 const hint = (msg) => {
   const m = String(msg || '');
   if (/unauthorized|401|invalid|permission|insufficient|403|restricted/i.test(m)) {
-    return `${m}\n\nSi es un problema de permisos: en notion.so/my-integrations abre la integración de Draveir y activa la capacidad "Insertar contenido".`;
+    return `${m}\n\nSi es un problema de permisos: en notion.so/my-integrations abre la integración de Draveir y activa "Insertar contenido" y "Actualizar contenido".`;
   }
   return m;
 };
 
+let lastPing = Date.now();
+
 const server = createServer(async (req, res) => {
+  const url = new URL(req.url, 'http://localhost');
+  const path = url.pathname;
   try {
-    if (req.method === 'GET' && (req.url === '/' || req.url === '/index.html')) {
+    if (req.method === 'GET' && (path === '/' || path === '/index.html')) {
       const html = await readFile(resolve(__dirname, 'index.html'));
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
       return res.end(html);
     }
-    if (req.method === 'GET' && req.url === '/api/novels') {
-      return sendJson(res, 200, { novels: await listNovels() });
-    }
-    if (req.method === 'POST' && req.url === '/api/chapter') {
-      return sendJson(res, 200, await createChapter(await readBody(req)));
-    }
-    if (req.method === 'POST' && req.url === '/api/novel') {
-      return sendJson(res, 200, await createNovel(await readBody(req)));
-    }
-    if (req.method === 'POST' && req.url === '/api/publish') {
-      await publish();
-      return sendJson(res, 200, { ok: true });
-    }
+    if (path === '/api/ping') { lastPing = Date.now(); return sendJson(res, 200, { ok: true }); }
+    if (req.method === 'GET' && path === '/api/novels') return sendJson(res, 200, { novels: await listNovels() });
+    if (req.method === 'GET' && path === '/api/novel') return sendJson(res, 200, await getNovel(url.searchParams.get('id')));
+    if (req.method === 'GET' && path === '/api/chapters') return sendJson(res, 200, { chapters: await listChapters(url.searchParams.get('novelId')) });
+    if (req.method === 'POST' && path === '/api/chapter') return sendJson(res, 200, await upsertChapter(await readBody(req)));
+    if (req.method === 'POST' && path === '/api/novel') return sendJson(res, 200, await upsertNovel(await readBody(req)));
+    if (req.method === 'POST' && path === '/api/delete') return sendJson(res, 200, await archivePage((await readBody(req)).pageId));
+    if (req.method === 'POST' && path === '/api/publish') { await publish(); return sendJson(res, 200, { ok: true }); }
     res.writeHead(404); res.end('No encontrado');
   } catch (err) {
     sendJson(res, 400, { error: hint(err?.message) });
   }
 });
 
+// Se apaga cuando el navegador deja de enviar heartbeat (pestaña cerrada).
+setInterval(() => {
+  if (Date.now() - lastPing > IDLE_MS) {
+    console.log('\n  Pestaña cerrada — deteniendo Draveir Studio.');
+    server.close(() => process.exit(0));
+    setTimeout(() => process.exit(0), 1000).unref();
+  }
+}, 4000).unref();
+
 server.listen(PORT, () => {
-  console.log(`\n  Draveir Studio  →  http://localhost:${PORT}\n  (Ctrl+C para detener)\n`);
+  console.log(`\n  Draveir Studio  →  http://localhost:${PORT}\n  (se cierra solo al cerrar la pestaña)\n`);
 });
