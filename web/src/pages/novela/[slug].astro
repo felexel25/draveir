@@ -87,7 +87,7 @@ const gradient = coverGradient(novel.data.categories);
     <ol class="chapter-list">
       {chapters.map((c) => (
         <li>
-          <a href={`/novela/${slug}/${c.chapterSlug}`} class={c.locked ? 'locked' : ''}>
+          <a href={`/novela/${slug}/${c.chapterSlug}`} class={c.locked ? 'locked' : ''} data-unlocks={c.locked ? c.unlocksAt : undefined}>
             <span>{c.locked && <span class="lock" aria-hidden="true">✦</span>}{c.title}</span>
             <span class="ch-time">{c.locked ? `Se abre el ${dateFmt(c.unlocksAt)}` : `~${c.minutes} min`}</span>
           </a>
@@ -95,6 +95,21 @@ const gradient = coverGradient(novel.data.categories);
       ))}
     </ol>
   </main>
+
+  <script is:inline>
+    // El build hornea el estado bloqueado; si la fecha ya pasó antes del próximo
+    // rebuild (cada 6h), destrabamos la fila en vivo. El capítulo ya se abre solo
+    // vía la Function, esto solo alinea la lista.
+    for (const a of document.querySelectorAll('.chapter-list a.locked')) {
+      const at = Date.parse(a.getAttribute('data-unlocks') || '');
+      if (!Number.isNaN(at) && Date.now() >= at) {
+        a.classList.remove('locked');
+        a.querySelector('.lock')?.remove();
+        const t = a.querySelector('.ch-time');
+        if (t) t.textContent = 'Disponible';
+      }
+    }
+  </script>
 
   <script is:inline set:html={`window.__novelSlug=${JSON.stringify(novel.data.slug)};`}></script>
   <script>
