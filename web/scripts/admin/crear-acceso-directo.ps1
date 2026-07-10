@@ -3,7 +3,7 @@
 $ErrorActionPreference = 'Stop'
 $here    = Split-Path -Parent $MyInvocation.MyCommand.Path
 $target  = Join-Path $here 'Draveir Studio.cmd'
-$icon    = Join-Path $here 'loco.ico'   # opcional; si no existe, usa el icono por defecto
+$icon    = Join-Path $here 'draveir.ico'   # La Fuerza, el mismo emblema del favicon del sitio
 $desktop = [Environment]::GetFolderPath('Desktop')
 $lnkPath = Join-Path $desktop 'Draveir Studio.lnk'
 
