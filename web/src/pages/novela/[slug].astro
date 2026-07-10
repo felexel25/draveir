@@ -4,7 +4,6 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import Breadcrumb from '../../components/Breadcrumb.astro';
 import Emblem from '../../components/Emblem.astro';
 import FavoriteButton from '../../components/FavoriteButton.astro';
-import { pickEmblem } from '../../lib/emblem';
 import { coverGradient } from '../../lib/covers';
 import { readingTime } from '../../lib/reading';
 import { slugify } from '../../lib/slug';
@@ -64,7 +63,7 @@ const gradient = coverGradient(novel.data.categories);
     <div class="novel-hero">
       <span class="plate" style={`background:${gradient}`} aria-hidden="true">
         <span class="corner sigil">✦</span>
-        <Emblem name={pickEmblem(novel.data.slug)} />
+        <Emblem slug={novel.data.slug} />
       </span>
       <div>
         {novel.data.categories[0] && <span class="eyebrow">{novel.data.categories[0]}</span>}

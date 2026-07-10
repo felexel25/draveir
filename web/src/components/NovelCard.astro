@@ -1,7 +1,6 @@
 ---
 import { coverGradient } from '../lib/covers';
 import { slugify } from '../lib/slug';
-import { pickEmblem } from '../lib/emblem';
 import Emblem from './Emblem.astro';
 
 interface Props {
@@ -22,7 +21,7 @@ const primaryCategory = categories[0];
   <a class="cover-link" href={`/novela/${slug}`} aria-label={title}>
     <span class="plate" style={`background:${gradient}`}>
       <span class="corner sigil" aria-hidden="true">✦</span>
-      <Emblem name={pickEmblem(slug)} />
+      <Emblem slug={slug} />
     </span>
   </a>
   <div class="body">

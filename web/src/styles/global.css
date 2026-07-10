@@ -96,7 +96,8 @@ a:hover { color: var(--accent-strong); }
 .plate .emblem {
   width: 48%;
   height: auto;
-  color: #efe4c8;
+  /* Dorado fijo, no var(--brass): la carátula es siempre oscura, también en tema claro. */
+  color: #e3c179;
   filter: drop-shadow(0 2px 14px rgba(0, 0, 0, 0.35));
 }
 .plate .corner {
