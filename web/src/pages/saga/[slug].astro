@@ -1,0 +1,61 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import NovelCard from '../../components/NovelCard.astro';
+import Breadcrumb from '../../components/Breadcrumb.astro';
+import { readingOrder } from '../../lib/saga';
+
+export async function getStaticPaths() {
+  const sagas = await getCollection('sagas');
+  return sagas.map((s) => ({
+    params: { slug: s.data.slug },
+    props: { name: s.data.name, description: s.data.description },
+  }));
+}
+
+interface Props { name: string; description: string; }
+const { name, description } = Astro.props;
+const { slug } = Astro.params;
+
+const novels = (await getCollection('novels')).filter((n) => n.data.saga === slug);
+const ordered = readingOrder(
+  novels.map((n) => ({ slug: n.data.slug, title: n.data.title, sagaOrder: n.data.sagaOrder })),
+);
+const bySlug = new Map(novels.map((n) => [n.data.slug, n.data]));
+---
+
+<BaseLayout title={`Saga ${name} — Draveir`} description={description}>
+  <main class="container wide" id="contenido">
+    <Breadcrumb items={[{ label: 'Novelas', href: '/novelas' }, { label: name }]} />
+    <div class="page-head">
+      <span class="eyebrow">Saga</span>
+      <h1>{name}</h1>
+      {description && <p class="saga-desc">{description}</p>}
+    </div>
+    <ol class="novel-grid">
+      {ordered.map((o) => {
+        const n = bySlug.get(o.slug)!;
+        return (
+          <NovelCard
+            slug={n.slug}
+            title={n.title}
+            synopsis={n.synopsis}
+            status={n.status}
+            categories={n.categories}
+          />
+        );
+      })}
+    </ol>
+  </main>
+</BaseLayout>
+
+<style>
+  .wide { max-width: 72rem; }
+  .page-head { margin-bottom: var(--space-5); }
+  .page-head h1 { margin: var(--space-1) 0 0; }
+  .saga-desc { color: var(--text-muted); font-size: 1.1rem; max-width: 60ch; margin-top: var(--space-3); }
+  .novel-grid {
+    list-style: none; padding: 0; display: grid; gap: var(--space-5);
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  }
+</style>
