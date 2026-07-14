@@ -6,11 +6,16 @@ import Breadcrumb from '../../components/Breadcrumb.astro';
 import { readingOrder } from '../../lib/saga';
 
 export async function getStaticPaths() {
+  const novels = await getCollection('novels');
   const sagas = await getCollection('sagas');
-  return sagas.map((s) => ({
-    params: { slug: s.data.slug },
-    props: { name: s.data.name, description: s.data.description },
-  }));
+  // Una saga sin novelas publicadas no tiene página: prometería un mundo y no
+  // daría nada que leer. Aparece sola en cuanto se publique la primera.
+  return sagas
+    .filter((s) => novels.some((n) => n.data.saga === s.data.slug))
+    .map((s) => ({
+      params: { slug: s.data.slug },
+      props: { name: s.data.name, description: s.data.description },
+    }));
 }
 
 interface Props { name: string; description: string; }
