@@ -1,5 +1,15 @@
 import { defineCollection, z } from 'astro:content';
 
+const sagas = defineCollection({
+  type: 'data',
+  schema: z.object({
+    slug: z.string(),
+    name: z.string(),
+    description: z.string(),
+    order: z.number(),
+  }),
+});
+
 const novels = defineCollection({
   type: 'data',
   schema: z.object({
@@ -10,6 +20,9 @@ const novels = defineCollection({
     categories: z.array(z.string()),
     tags: z.array(z.string()),
     featured: z.boolean(),
+    saga: z.string().nullable().default(null),
+    sagaOrder: z.number().nullable().default(null),
+    related: z.array(z.string()).default([]),
   }),
 });
 
@@ -35,4 +48,4 @@ const lockedChapters = defineCollection({
   }),
 });
 
-export const collections = { novels, chapters, lockedChapters };
+export const collections = { sagas, novels, chapters, lockedChapters };

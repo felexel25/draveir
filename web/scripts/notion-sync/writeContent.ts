@@ -1,9 +1,10 @@
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { marked } from 'marked';
-import type { NovelData, ChapterData } from './types';
+import type { NovelData, ChapterData, SagaData } from './types';
 
 const CONTENT = join(process.cwd(), 'src', 'content');
+const SAGAS_DIR = join(CONTENT, 'sagas');
 const NOVELS_DIR = join(CONTENT, 'novels');
 const CHAPTERS_DIR = join(CONTENT, 'chapters');
 const LOCKED_DIR = join(CONTENT, 'lockedChapters');
@@ -15,13 +16,18 @@ function frontmatter(fields: Record<string, unknown>): string {
 }
 
 export async function writeContent(
+  sagas: SagaData[],
   novels: NovelData[],
   published: ChapterData[],
   locked: ChapterData[],
 ): Promise<void> {
-  for (const dir of [NOVELS_DIR, CHAPTERS_DIR, LOCKED_DIR]) {
+  for (const dir of [SAGAS_DIR, NOVELS_DIR, CHAPTERS_DIR, LOCKED_DIR]) {
     await rm(dir, { recursive: true, force: true });
     await mkdir(dir, { recursive: true });
+  }
+
+  for (const s of sagas) {
+    await writeFile(join(SAGAS_DIR, `${s.slug}.json`), JSON.stringify(s, null, 2));
   }
 
   for (const n of novels) {

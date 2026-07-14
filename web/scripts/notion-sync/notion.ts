@@ -1,11 +1,12 @@
 import { Client } from '@notionhq/client';
 import { NotionToMarkdown } from 'notion-to-md';
-import type { NotionPage, NovelData, ChapterData } from './types';
-import { parseNovel, parseChapterMeta } from './transform';
+import type { NotionPage, NovelData, ChapterData, SagaData } from './types';
+import { parseNovel, parseChapterMeta, parseSaga, novelSlugOf, symmetrizeRelated } from './transform';
 import { isUnlocked } from '../../src/lib/unlock';
 
 const NOVELS_DB = 'c03f5b38-513f-4c0f-8f91-1b69cad31673';
 const CHAPTERS_DB = '4ac20247-41d9-46b7-b9ca-cae507c3eaf2';
+const SAGAS_DB = '59e14fc6-5381-407b-99c2-c26d4e532a89';
 
 const token = process.env.NOTION_TOKEN;
 if (!token) throw new Error('Falta NOTION_TOKEN en el entorno.');
@@ -34,16 +35,26 @@ const PUBLISHED_NOVELS_FILTER = {
   checkbox: { equals: true },
 };
 
-export async function fetchPublishedNovels(): Promise<NovelData[]> {
-  const pages = await queryAll(NOVELS_DB, PUBLISHED_NOVELS_FILTER);
-  return pages.map(parseNovel);
+export async function fetchSagas(): Promise<SagaData[]> {
+  const pages = await queryAll(SAGAS_DB);
+  return pages.map((page) => parseSaga(page)).sort((a, b) => a.order - b.order);
 }
 
-export async function fetchNovelSlugMap(): Promise<Map<string, string>> {
+export async function fetchSagaSlugMap(): Promise<Map<string, string>> {
+  const pages = await queryAll(SAGAS_DB);
+  return new Map(pages.map((page) => [page.id, parseSaga(page).slug]));
+}
+
+export async function fetchNovels(
+  sagaSlugById: Map<string, string>,
+): Promise<{ novels: NovelData[]; novelSlugById: Map<string, string> }> {
   const pages = await queryAll(NOVELS_DB, PUBLISHED_NOVELS_FILTER);
-  const map = new Map<string, string>();
-  for (const page of pages) map.set(page.id, parseNovel(page).slug);
-  return map;
+  // El mapa se construye primero: `Relacionadas` apunta a estas mismas novelas.
+  const novelSlugById = new Map(pages.map((page) => [page.id, novelSlugOf(page)]));
+  const novels = symmetrizeRelated(
+    pages.map((page) => parseNovel(page, sagaSlugById, novelSlugById)),
+  );
+  return { novels, novelSlugById };
 }
 
 // Todos los capítulos visibles: Publicado o Programado. Marca `unlocked` según

@@ -4,6 +4,7 @@ import BaseLayout from '../../../layouts/BaseLayout.astro';
 import ChapterNav from '../../../components/ChapterNav.astro';
 import Breadcrumb from '../../../components/Breadcrumb.astro';
 import Countdown from '../../../components/Countdown.astro';
+import SagaFooter from '../../../components/SagaFooter.astro';
 import { readingTime } from '../../../lib/reading';
 
 type Props =
@@ -42,6 +43,12 @@ const chapterSlug =
   props.kind === 'published' ? props.entry.data.chapterSlug : props.meta.chapterSlug;
 const rendered = props.kind === 'published' ? await props.entry.render() : null;
 const minutes = props.kind === 'published' ? readingTime(props.entry.body) : 0;
+
+// El último capítulo PUBLICADO, aunque exista uno bloqueado por encima: ese es
+// justo el caso "alcanzaste al autor", y también merece el bloque.
+const lastPublished = Math.max(0, ...pub.map((c) => c.data.number));
+const isLastPublished =
+  props.kind === 'published' && props.entry.data.number === lastPublished;
 ---
 
 <BaseLayout title={`${title} — Draveir`}>
@@ -67,6 +74,8 @@ const minutes = props.kind === 'published' ? readingTime(props.entry.body) : 0;
         <Countdown novelSlug={slug} chapterSlug={chapterSlug} unlocksAt={props.meta.unlocksAt} />
       )
     )}
+
+    {isLastPublished && <SagaFooter novelSlug={slug} />}
 
     <div class="chapter-foot">
       <ChapterNav novelSlug={slug} current={chapterSlug} items={items} />

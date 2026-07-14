@@ -15,6 +15,7 @@ const WEB_DIR = resolve(__dirname, '../..');
 
 const NOVELS_DB = 'c03f5b38-513f-4c0f-8f91-1b69cad31673';
 const CHAPTERS_DB = '4ac20247-41d9-46b7-b9ca-cae507c3eaf2';
+const SAGAS_DB = '59e14fc6-5381-407b-99c2-c26d4e532a89';
 const PORT = 4477;
 const REPO = 'felexel25/draveir';
 const WORKFLOW = 'Sincronización programada';
@@ -47,16 +48,47 @@ export function chapterProps({ novelId, title, number, estado, fecha }) {
   };
 }
 
-export function novelProps({ title, slug, synopsis, estado, categorias, publicada, destacada }) {
+const richText = (s) => ({ rich_text: s && s.trim() ? [{ text: { content: s.trim() } }] : [] });
+
+// '' | null → null; si no, un número. Lanza si es basura.
+function optionalNumber(v, campo) {
+  if (v === '' || v == null) return null;
+  const n = Number(v);
+  if (!Number.isFinite(n)) throw new Error(`${campo} no es un número válido.`);
+  return n;
+}
+
+export function novelProps({
+  title, slug, synopsis, estado, categorias, etiquetas, publicada, destacada,
+  saga, ordenSaga, relacionadas, pageId,
+}) {
   if (!title || !title.trim()) throw new Error('Falta el título de la novela.');
+  const orden = optionalNumber(ordenSaga, 'El orden en la saga');
+  // Una novela no se relaciona consigo misma: el sync la descartaría igualmente.
+  const rel = (Array.isArray(relacionadas) ? relacionadas : []).filter((id) => id && id !== pageId);
   return {
     'Título': { title: [{ text: { content: title.trim() } }] },
-    'Sinopsis': { rich_text: synopsis && synopsis.trim() ? [{ text: { content: synopsis.trim() } }] : [] },
-    'Slug': { rich_text: slug && slug.trim() ? [{ text: { content: slug.trim() } }] : [] },
+    'Sinopsis': richText(synopsis),
+    'Slug': richText(slug),
     'Estado': { select: estado && NOVEL_ESTADOS.includes(estado) ? { name: estado } : null },
     'Categorías': { multi_select: (Array.isArray(categorias) ? categorias : []).map((name) => ({ name })) },
+    'Etiquetas': { multi_select: (Array.isArray(etiquetas) ? etiquetas : []).map((name) => ({ name })) },
     'Publicada': { checkbox: !!publicada },
     'Destacada': { checkbox: !!destacada },
+    // Siempre presentes: al editar, quitar la saga aquí debe limpiarla en Notion.
+    'Saga': { relation: saga ? [{ id: saga }] : [] },
+    'Orden en saga': { number: orden },
+    'Relacionadas': { relation: rel.map((id) => ({ id })) },
+  };
+}
+
+export function sagaProps({ nombre, slug, descripcion, orden }) {
+  if (!nombre || !nombre.trim()) throw new Error('Falta el nombre de la saga.');
+  return {
+    'Nombre': { title: [{ text: { content: nombre.trim() } }] },
+    'Slug': richText(slug),
+    'Descripción': richText(descripcion),
+    'Orden': { number: optionalNumber(orden, 'El orden de la saga') ?? 0 },
   };
 }
 
@@ -76,6 +108,28 @@ if (process.argv.includes('--selfcheck')) {
   ok(np['Categorías'].multi_select[0].name === 'Fantasía', 'categoría');
   ok(np['Publicada'].checkbox === true, 'publicada');
   ok(novelProps({ title: 'x', categorias: [] })['Categorías'].multi_select.length === 0, 'sin categorías limpia');
+  const sg = novelProps({ title: 'x', saga: 'saga-1', ordenSaga: '20', relacionadas: ['n2'] });
+  ok(sg['Saga'].relation[0].id === 'saga-1', 'saga');
+  ok(sg['Orden en saga'].number === 20, 'orden numérico');
+  ok(sg['Relacionadas'].relation[0].id === 'n2', 'relacionadas');
+  const sin = novelProps({ title: 'x' });
+  ok(sin['Saga'].relation.length === 0, 'sin saga limpia');
+  ok(sin['Orden en saga'].number === null, 'sin orden limpia');
+  ok(novelProps({ title: 'x', pageId: 'yo', relacionadas: ['yo', 'otra'] })['Relacionadas'].relation.length === 1, 'no se relaciona consigo misma');
+  ok(novelProps({ title: 'x', etiquetas: ['Magia'] })['Etiquetas'].multi_select[0].name === 'Magia', 'etiqueta');
+  ok(novelProps({ title: 'x' })['Etiquetas'].multi_select.length === 0, 'sin etiquetas limpia');
+  let badOrden = false;
+  try { novelProps({ title: 'x', ordenSaga: 'ocho' }); } catch { badOrden = true; }
+  ok(badOrden, 'orden no numérico debe fallar');
+  const sp = sagaProps({ nombre: ' Stasis ', slug: 'stasis', descripcion: 'Un mundo.', orden: '10' });
+  ok(sp['Nombre'].title[0].text.content === 'Stasis', 'nombre de saga recortado');
+  ok(sp['Descripción'].rich_text[0].text.content === 'Un mundo.', 'descripción de saga');
+  ok(sp['Orden'].number === 10, 'orden de saga numérico');
+  ok(sagaProps({ nombre: 'x' })['Orden'].number === 0, 'saga sin orden → 0');
+  ok(sagaProps({ nombre: 'x' })['Slug'].rich_text.length === 0, 'saga sin slug limpia');
+  let badSaga = false;
+  try { sagaProps({ nombre: '  ' }); } catch { badSaga = true; }
+  ok(badSaga, 'saga sin nombre debe fallar');
   console.log('selfcheck OK');
   process.exit(0);
 }
@@ -100,6 +154,12 @@ async function listNovels() {
   return res.results.map((p) => ({ id: p.id, title: text(p.properties['Título']) || '(sin título)' }));
 }
 
+async function listSagas() {
+  const n = await getNotion();
+  const res = await n.databases.query({ database_id: SAGAS_DB, sorts: [{ property: 'Orden', direction: 'ascending' }] });
+  return res.results.map((p) => ({ id: p.id, title: text(p.properties['Nombre']) || '(sin nombre)' }));
+}
+
 async function getNovel(id) {
   const n = await getNotion();
   const p = await n.pages.retrieve({ page_id: id });
@@ -111,9 +171,35 @@ async function getNovel(id) {
     synopsis: text(P['Sinopsis']),
     estado: P['Estado']?.select?.name ?? '',
     categorias: (P['Categorías']?.multi_select ?? []).map((o) => o.name),
+    etiquetas: (P['Etiquetas']?.multi_select ?? []).map((o) => o.name),
     publicada: !!P['Publicada']?.checkbox,
     destacada: !!P['Destacada']?.checkbox,
+    saga: P['Saga']?.relation?.[0]?.id ?? '',
+    ordenSaga: P['Orden en saga']?.number ?? '',
+    relacionadas: (P['Relacionadas']?.relation ?? []).map((r) => r.id),
   };
+}
+
+async function getSaga(id) {
+  const n = await getNotion();
+  const p = await n.pages.retrieve({ page_id: id });
+  const P = p.properties;
+  return {
+    id: p.id,
+    nombre: text(P['Nombre']),
+    slug: text(P['Slug']),
+    descripcion: text(P['Descripción']),
+    orden: P['Orden']?.number ?? '',
+  };
+}
+
+async function upsertSaga(body) {
+  const n = await getNotion();
+  const properties = sagaProps(body);
+  const page = body.pageId
+    ? await n.pages.update({ page_id: body.pageId, properties })
+    : await n.pages.create({ parent: { database_id: SAGAS_DB }, properties });
+  return { url: page.url, updated: !!body.pageId };
 }
 
 async function listChapters(novelId) {
@@ -214,6 +300,9 @@ const server = createServer(async (req, res) => {
       return sendJson(res, 200, { ok: true });
     }
     if (req.method === 'GET' && path === '/api/novels') return sendJson(res, 200, { novels: await listNovels() });
+    if (req.method === 'GET' && path === '/api/sagas') return sendJson(res, 200, { sagas: await listSagas() });
+    if (req.method === 'GET' && path === '/api/saga') return sendJson(res, 200, await getSaga(url.searchParams.get('id')));
+    if (req.method === 'POST' && path === '/api/saga') return sendJson(res, 200, await upsertSaga(await readBody(req)));
     if (req.method === 'GET' && path === '/api/novel') return sendJson(res, 200, await getNovel(url.searchParams.get('id')));
     if (req.method === 'GET' && path === '/api/chapters') return sendJson(res, 200, { chapters: await listChapters(url.searchParams.get('novelId')) });
     if (req.method === 'POST' && path === '/api/chapter') return sendJson(res, 200, await upsertChapter(await readBody(req)));
