@@ -7,6 +7,7 @@ import FavoriteButton from '../../components/FavoriteButton.astro';
 import { coverGradient } from '../../lib/covers';
 import { readingTime } from '../../lib/reading';
 import { slugify } from '../../lib/slug';
+import { readingOrder, positionIn } from '../../lib/saga';
 
 export async function getStaticPaths() {
   const novels = await getCollection('novels');
@@ -46,6 +47,18 @@ const dateFmt = (iso: string) =>
   });
 
 const gradient = coverGradient(novel.data.categories);
+
+const saga = novel.data.saga ? await getEntry('sagas', novel.data.saga) : undefined;
+const sagaPosition = saga
+  ? positionIn(
+      novel.data.slug,
+      readingOrder(
+        (await getCollection('novels'))
+          .filter((n) => n.data.saga === novel.data.saga)
+          .map((n) => ({ slug: n.data.slug, title: n.data.title, sagaOrder: n.data.sagaOrder })),
+      ),
+    )
+  : null;
 ---
 
 <BaseLayout title={`${novel.data.title} — Draveir`} description={novel.data.synopsis} ogType="book">
@@ -70,6 +83,12 @@ const gradient = coverGradient(novel.data.categories);
         <h1>{novel.data.title}</h1>
         <p class="synopsis">{novel.data.synopsis}</p>
         <div class="meta">
+          {saga && (
+            <a class="saga-line" href={`/saga/${saga.data.slug}`}>
+              {sagaPosition && <span class="saga-pos">{sagaPosition}</span>}
+              Saga {saga.data.name}
+            </a>
+          )}
           {novel.data.status && <span class="status">{novel.data.status}</span>}
           {novel.data.categories.map((c) => (
             <a class="tag" href={`/categoria/${slugify(c)}`}>{c}</a>
@@ -133,4 +152,7 @@ const gradient = coverGradient(novel.data.categories);
   .chapter-list a.locked:hover { color: var(--text); }
   .chapter-list a.locked .ch-time { color: var(--warm); }
   .chapter-list .lock { color: var(--brass); margin-right: 0.45rem; font-size: 0.8em; }
+  .saga-line { display: inline-flex; align-items: center; gap: 0.4rem; color: var(--brass); text-decoration: none; }
+  .saga-line:hover { text-decoration: underline; }
+  .saga-pos { color: var(--text-muted); font-size: 0.85em; }
 </style>
