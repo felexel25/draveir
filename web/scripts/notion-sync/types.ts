@@ -5,6 +5,13 @@ export interface NotionPage {
   properties: Record<string, any>;
 }
 
+export interface SagaData {
+  slug: string;
+  name: string;
+  description: string;
+  order: number;
+}
+
 export interface NovelData {
   slug: string;
   title: string;
@@ -13,6 +20,9 @@ export interface NovelData {
   categories: string[];
   tags: string[];
   featured: boolean;
+  saga: string | null;      // slug de la saga, o null
+  sagaOrder: number | null; // posición de lectura dentro de la saga
+  related: string[];        // slugs de novelas que se cruzan con esta
 }
 
 export interface ChapterMeta {

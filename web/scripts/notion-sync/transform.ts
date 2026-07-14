@@ -1,4 +1,4 @@
-import type { NotionPage, NovelData, ChapterMeta } from './types';
+import type { NotionPage, NovelData, ChapterMeta, SagaData } from './types';
 
 const plainText = (prop: any): string =>
   (prop?.title ?? prop?.rich_text ?? []).map((t: any) => t.plain_text).join('').trim();
@@ -13,19 +13,65 @@ const slugify = (s: string): string =>
 
 export const chapterSlug = (n: number): string => `capitulo-${n}`;
 
-export function parseNovel(page: NotionPage): NovelData {
+// Resuelve una relación de Notion a slugs, descartando las páginas que no están
+// en el mapa (= no publicadas): mismo criterio que un capítulo sin novela.
+const relationSlugs = (prop: any, byId?: Map<string, string>): string[] =>
+  (prop?.relation ?? [])
+    .map((r: any) => byId?.get(r.id))
+    .filter((s: string | undefined): s is string => Boolean(s));
+
+export function parseSaga(page: NotionPage): SagaData {
   const p = page.properties;
-  const title = plainText(p['Título']);
+  const name = plainText(p['Nombre']);
   const rawSlug = plainText(p['Slug']);
   return {
-    slug: rawSlug || slugify(title),
-    title,
+    slug: rawSlug || slugify(name),
+    name,
+    description: plainText(p['Descripción']),
+    order: p['Orden']?.number ?? 0,
+  };
+}
+
+// El slug de una novela sin resolver relaciones: hace falta para construir el
+// mapa id→slug ANTES de poder resolver `Relacionadas`, que apunta a novelas.
+export function novelSlugOf(page: NotionPage): string {
+  const p = page.properties;
+  return plainText(p['Slug']) || slugify(plainText(p['Título']));
+}
+
+export function parseNovel(
+  page: NotionPage,
+  sagaSlugById?: Map<string, string>,
+  novelSlugById?: Map<string, string>,
+): NovelData {
+  const p = page.properties;
+  return {
+    slug: novelSlugOf(page),
+    title: plainText(p['Título']),
     synopsis: plainText(p['Sinopsis']),
     status: p['Estado']?.select?.name ?? null,
     categories: (p['Categorías']?.multi_select ?? []).map((o: any) => o.name),
     tags: (p['Etiquetas']?.multi_select ?? []).map((o: any) => o.name),
     featured: Boolean(p['Destacada']?.checkbox),
+    saga: relationSlugs(p['Saga'], sagaSlugById)[0] ?? null,
+    sagaOrder: p['Orden en saga']?.number ?? null,
+    related: relationSlugs(p['Relacionadas'], novelSlugById),
   };
+}
+
+// Notion no simetriza las relaciones a sí misma: si A declara el cruce con B y B
+// no declara nada, el lector nunca vería el enlace desde B. Cerramos el grafo.
+export function symmetrizeRelated(novels: NovelData[]): NovelData[] {
+  const known = new Set(novels.map((n) => n.slug));
+  const links = new Map<string, Set<string>>(novels.map((n) => [n.slug, new Set<string>()]));
+  for (const n of novels) {
+    for (const other of n.related) {
+      if (other === n.slug || !known.has(other)) continue;
+      links.get(n.slug)!.add(other);
+      links.get(other)!.add(n.slug);
+    }
+  }
+  return novels.map((n) => ({ ...n, related: [...links.get(n.slug)!].sort() }));
 }
 
 export function parseChapterMeta(
