@@ -1,0 +1,89 @@
+---
+import { getCollection, getEntry } from 'astro:content';
+import { readingOrder } from '../lib/saga';
+
+interface Props { novelSlug: string; }
+const { novelSlug } = Astro.props;
+
+const all = await getCollection('novels');
+const novel = all.find((n) => n.data.slug === novelSlug);
+
+const saga = novel?.data.saga ? await getEntry('sagas', novel.data.saga) : undefined;
+
+// Hermanas: las demás novelas de la saga, en orden de lectura.
+const siblings = saga
+  ? readingOrder(
+      all
+        .filter((n) => n.data.saga === saga.data.slug && n.data.slug !== novelSlug)
+        .map((n) => ({ slug: n.data.slug, title: n.data.title, sagaOrder: n.data.sagaOrder })),
+    )
+  : [];
+
+// La "siguiente": la primera hermana con orden mayor que el de esta novela.
+const myOrder = novel?.data.sagaOrder ?? null;
+const nextSlug =
+  myOrder === null
+    ? undefined
+    : siblings.find((s) => s.sagaOrder !== null && s.sagaOrder > myOrder)?.slug;
+
+const relatedSlugs = novel?.data.related ?? [];
+const related = relatedSlugs
+  .map((slug) => all.find((n) => n.data.slug === slug))
+  .filter((n): n is NonNullable<typeof n> => Boolean(n));
+
+const hasSomething = siblings.length > 0 || related.length > 0;
+---
+
+{hasSomething && (
+  <aside class="saga-foot">
+    <h2>Sigue leyendo en este mundo</h2>
+
+    {saga && siblings.length > 0 && (
+      <Fragment>
+        <p class="saga-intro">
+          Esta historia es parte de <a href={`/saga/${saga.data.slug}`}>{saga.data.name}</a>.
+          {saga.data.description && ` ${saga.data.description}`}
+        </p>
+        <ul>
+          {siblings.map((s) => (
+            <li>
+              <a href={`/novela/${s.slug}`}>
+                {s.slug === nextSlug && <span class="next">Siguiente</span>}
+                {s.title}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </Fragment>
+    )}
+
+    {related.length > 0 && (
+      <Fragment>
+        <p class="saga-intro">También se cruza con:</p>
+        <ul>
+          {related.map((n) => (
+            <li><a href={`/novela/${n.data.slug}`}>{n.data.title}</a></li>
+          ))}
+        </ul>
+      </Fragment>
+    )}
+  </aside>
+)}
+
+<style>
+  .saga-foot {
+    margin-top: var(--space-6);
+    padding-top: var(--space-5);
+    border-top: 1px solid var(--line);
+  }
+  .saga-foot h2 { margin: 0 0 var(--space-3); }
+  .saga-intro { color: var(--text-muted); max-width: 60ch; }
+  .saga-foot ul { list-style: none; padding: 0; margin: var(--space-3) 0 var(--space-4); }
+  .saga-foot li { margin-bottom: var(--space-2); }
+  .saga-foot li a { display: inline-flex; align-items: center; gap: 0.5rem; }
+  .next {
+    font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--brass); border: 1px solid var(--brass);
+    border-radius: 999px; padding: 0.1rem 0.45rem;
+  }
+</style>
