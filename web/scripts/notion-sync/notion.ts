@@ -36,7 +36,8 @@ const PUBLISHED_NOVELS_FILTER = {
 
 export async function fetchPublishedNovels(): Promise<NovelData[]> {
   const pages = await queryAll(NOVELS_DB, PUBLISHED_NOVELS_FILTER);
-  return pages.map(parseNovel);
+  // Lambda explícita: `.map(parseNovel)` le colaría el índice como 2º argumento.
+  return pages.map((page) => parseNovel(page));
 }
 
 export async function fetchNovelSlugMap(): Promise<Map<string, string>> {
