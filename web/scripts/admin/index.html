@@ -123,6 +123,8 @@
         <select id="nv-estado"><option>En progreso</option><option>Completa</option><option>Pausada</option></select>
         <label>Categorías</label>
         <div class="chips" id="nv-cats"></div>
+        <label>Etiquetas</label>
+        <div class="chips" id="nv-tags"></div>
         <div class="row">
           <div style="flex:2">
             <label for="nv-saga">Saga <span style="color:var(--muted)">· opcional</span></label>
@@ -147,6 +149,33 @@
       </form>
     </section>
   </div>
+
+  <!-- SAGA -->
+  <section class="card">
+    <h2 id="sg-h2">Nueva saga / mundo</h2>
+    <p class="hint">Tabla <strong>Sagas</strong>. Agrupa las novelas de un mismo mundo: al terminar una, el lector ve las hermanas.</p>
+    <form id="sagaForm">
+      <label for="sg-pick">Editar una existente <span style="color:var(--muted)">· o déjalo en blanco para crear</span></label>
+      <select id="sg-pick"><option value="">(nueva saga)</option></select>
+      <label for="sg-nombre">Nombre</label>
+      <input type="text" id="sg-nombre" required placeholder="Stasis">
+      <div class="row">
+        <div style="flex:2">
+          <label for="sg-slug">Slug <span style="color:var(--muted)">· opcional</span></label>
+          <input type="text" id="sg-slug" placeholder="se genera del nombre si lo dejas vacío">
+        </div>
+        <div>
+          <label for="sg-orden">Orden</label>
+          <input type="number" id="sg-orden" step="1" placeholder="10">
+        </div>
+      </div>
+      <label for="sg-desc">Descripción del mundo</label>
+      <textarea id="sg-desc" placeholder="Lo que ve el lector al terminar una novela y querer más…"></textarea>
+      <div class="editbar" id="sg-editbar"><span>Editando saga</span><a id="sg-cancel">cancelar</a></div>
+      <button class="btn primary submit" type="submit" id="sg-submit">Crear saga</button>
+      <div class="result" id="sg-result"></div>
+    </form>
+  </section>
 
   <!-- GESTIONAR -->
   <section class="card manage">
@@ -175,8 +204,9 @@
 
 <script>
 const CATS = ['Fantasía','Romance','Ciencia ficción','Aventura','Misterio','Terror','Acción'];
+const TAGS = ['Magia','Dragones','Academia'];
 const $ = (id) => document.getElementById(id);
-let editingChapterId = null, editingNovelId = null;
+let editingChapterId = null, editingNovelId = null, editingSagaId = null;
 
 // Heartbeat: mantiene vivo el servidor mientras la pestaña esté abierta;
 // al cerrarla, un beacon lo apaga (~4 s). Un refresco no lo apaga.
@@ -196,6 +226,7 @@ async function postJSON(url, body){
 }
 
 $('nv-cats').innerHTML = CATS.map(c => `<label><input type="checkbox" value="${c}"><span>${c}</span></label>`).join('');
+$('nv-tags').innerHTML = TAGS.map(t => `<label><input type="checkbox" value="${t}"><span>${t}</span></label>`).join('');
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
@@ -215,8 +246,11 @@ async function loadNovelSelectors(){
 async function loadSagas(){
   try{
     const {sagas} = await getJSON('/api/sagas');
-    $('nv-saga').innerHTML = '<option value="">(sin saga)</option>'
-      + sagas.map(s => `<option value="${s.id}">${esc(s.title)}</option>`).join('');
+    const opts = sagas.map(s => `<option value="${s.id}">${esc(s.title)}</option>`).join('');
+    const saga = $('nv-saga').value;
+    $('nv-saga').innerHTML = '<option value="">(sin saga)</option>' + opts;
+    $('nv-saga').value = saga; // no perder la selección al recargar tras crear una saga
+    $('sg-pick').innerHTML = '<option value="">(nueva saga)</option>' + opts;
   }catch(e){ $('nv-saga').innerHTML = '<option value="">Error al cargar</option>'; }
 }
 
@@ -245,6 +279,7 @@ function resetNovelForm(){
   $('nv-editbar').classList.remove('show');
   $('novForm').reset();
   document.querySelectorAll('#nv-cats input').forEach(i => i.checked = false);
+  document.querySelectorAll('#nv-tags input').forEach(i => i.checked = false);
   // reset() no toca los chips ni devuelve la novela que se ocultó al editar.
   document.querySelectorAll('#nv-rel label').forEach(l => { l.hidden = false; l.querySelector('input').checked = false; });
 }
@@ -285,6 +320,7 @@ $('novForm').addEventListener('submit', async (e) => {
       synopsis: $('nv-syn').value || null,
       estado: $('nv-estado').value,
       categorias: [...document.querySelectorAll('#nv-cats input:checked')].map(i => i.value),
+      etiquetas: [...document.querySelectorAll('#nv-tags input:checked')].map(i => i.value),
       publicada: $('nv-pub').checked,
       destacada: $('nv-dest').checked,
       saga: $('nv-saga').value || null,
@@ -296,6 +332,49 @@ $('novForm').addEventListener('submit', async (e) => {
     resetNovelForm();
     await loadNovelSelectors();
   }catch(err){ showResult($('nv-result'), 'err', err.message); }
+  finally{ btn.disabled = false; }
+});
+
+// ── Crear / editar saga ──
+function resetSagaForm(){
+  editingSagaId = null;
+  $('sg-h2').textContent = 'Nueva saga / mundo';
+  $('sg-submit').textContent = 'Crear saga';
+  $('sg-editbar').classList.remove('show');
+  $('sagaForm').reset();
+}
+$('sg-cancel').addEventListener('click', () => { resetSagaForm(); $('sg-result').className='result'; });
+
+$('sg-pick').addEventListener('change', async () => {
+  const id = $('sg-pick').value;
+  if(!id){ resetSagaForm(); return; }
+  try{
+    const s = await getJSON('/api/saga?id=' + encodeURIComponent(id));
+    editingSagaId = s.id;
+    $('sg-nombre').value = s.nombre; $('sg-slug').value = s.slug;
+    $('sg-desc').value = s.descripcion; $('sg-orden').value = s.orden ?? '';
+    $('sg-pick').value = id; // reset() lo habría limpiado; aquí no llamamos a reset
+    $('sg-h2').textContent = 'Editar saga';
+    $('sg-submit').textContent = 'Guardar cambios';
+    $('sg-editbar').classList.add('show');
+  }catch(e){ showResult($('sg-result'),'err', e.message); }
+});
+
+$('sagaForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = e.submitter; btn.disabled = true;
+  try{
+    const {url, updated} = await postJSON('/api/saga', {
+      pageId: editingSagaId || undefined,
+      nombre: $('sg-nombre').value,
+      slug: $('sg-slug').value || null,
+      descripcion: $('sg-desc').value || null,
+      orden: $('sg-orden').value,
+    });
+    showResult($('sg-result'), 'ok', `${updated?'Saga actualizada':'Saga creada'}. <a href="${url}" target="_blank" rel="noopener">Abrir en Notion →</a>`);
+    resetSagaForm();
+    await loadSagas();
+  }catch(err){ showResult($('sg-result'), 'err', err.message); }
   finally{ btn.disabled = false; }
 });
 
@@ -351,6 +430,7 @@ $('mg-edit-novel').addEventListener('click', async () => {
     $('nv-title').value = n.title; $('nv-slug').value = n.slug; $('nv-syn').value = n.synopsis;
     if(n.estado) $('nv-estado').value = n.estado;
     document.querySelectorAll('#nv-cats input').forEach(i => i.checked = n.categorias.includes(i.value));
+    document.querySelectorAll('#nv-tags input').forEach(i => i.checked = n.etiquetas.includes(i.value));
     $('nv-pub').checked = n.publicada; $('nv-dest').checked = n.destacada;
     $('nv-saga').value = n.saga || '';
     $('nv-orden').value = n.ordenSaga ?? '';
