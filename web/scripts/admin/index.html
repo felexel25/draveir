@@ -123,6 +123,20 @@
         <select id="nv-estado"><option>En progreso</option><option>Completa</option><option>Pausada</option></select>
         <label>Categorías</label>
         <div class="chips" id="nv-cats"></div>
+        <div class="row">
+          <div style="flex:2">
+            <label for="nv-saga">Saga <span style="color:var(--muted)">· opcional</span></label>
+            <select id="nv-saga"><option value="">(sin saga)</option></select>
+          </div>
+          <div>
+            <label for="nv-orden">Orden en la saga</label>
+            <input type="number" id="nv-orden" step="1" placeholder="10">
+          </div>
+        </div>
+        <p class="hint">Numera de 10 en 10: así puedes intercalar una precuela (5) o una historia entre medio (15) sin renumerar las demás.</p>
+        <label>Se cruza con <span style="color:var(--muted)">· opcional</span></label>
+        <div class="chips" id="nv-rel"></div>
+        <p class="hint">Basta marcarlo aquí: el lector verá el cruce desde las dos novelas.</p>
         <div class="checks">
           <label><input type="checkbox" id="nv-pub" checked> Publicada</label>
           <label><input type="checkbox" id="nv-dest"> Destacada</label>
@@ -183,15 +197,31 @@ async function postJSON(url, body){
 
 $('nv-cats').innerHTML = CATS.map(c => `<label><input type="checkbox" value="${c}"><span>${c}</span></label>`).join('');
 
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
 async function loadNovelSelectors(){
   try{
     const {novels} = await getJSON('/api/novels');
-    const opts = novels.map(n => `<option value="${n.id}">${n.title}</option>`).join('');
+    const opts = novels.map(n => `<option value="${n.id}">${esc(n.title)}</option>`).join('');
     $('ch-novela').innerHTML = novels.length ? opts : '<option value="">(no hay novelas)</option>';
     $('mg-novela').innerHTML = '<option value="">Elige…</option>' + opts;
+    // "Se cruza con": todas las novelas. La que se edita se oculta al cargarla.
+    $('nv-rel').innerHTML = novels.length
+      ? novels.map(n => `<label data-id="${n.id}"><input type="checkbox" value="${n.id}"><span>${esc(n.title)}</span></label>`).join('')
+      : '<span class="hint" style="margin:0">(aún no hay otras novelas)</span>';
   }catch(e){ $('ch-novela').innerHTML = '<option value="">Error al cargar</option>'; }
 }
+
+async function loadSagas(){
+  try{
+    const {sagas} = await getJSON('/api/sagas');
+    $('nv-saga').innerHTML = '<option value="">(sin saga)</option>'
+      + sagas.map(s => `<option value="${s.id}">${esc(s.title)}</option>`).join('');
+  }catch(e){ $('nv-saga').innerHTML = '<option value="">Error al cargar</option>'; }
+}
+
 loadNovelSelectors();
+loadSagas();
 
 // ── Estado → fecha ──
 $('ch-estado').addEventListener('change', () => {
@@ -215,6 +245,8 @@ function resetNovelForm(){
   $('nv-editbar').classList.remove('show');
   $('novForm').reset();
   document.querySelectorAll('#nv-cats input').forEach(i => i.checked = false);
+  // reset() no toca los chips ni devuelve la novela que se ocultó al editar.
+  document.querySelectorAll('#nv-rel label').forEach(l => { l.hidden = false; l.querySelector('input').checked = false; });
 }
 $('ch-cancel').addEventListener('click', () => { resetChapterForm(); $('ch-result').className='result'; });
 $('nv-cancel').addEventListener('click', () => { resetNovelForm(); $('nv-result').className='result'; });
@@ -255,6 +287,9 @@ $('novForm').addEventListener('submit', async (e) => {
       categorias: [...document.querySelectorAll('#nv-cats input:checked')].map(i => i.value),
       publicada: $('nv-pub').checked,
       destacada: $('nv-dest').checked,
+      saga: $('nv-saga').value || null,
+      ordenSaga: $('nv-orden').value,
+      relacionadas: [...document.querySelectorAll('#nv-rel input:checked')].map(i => i.value),
     };
     const {url, updated} = await postJSON('/api/novel', body);
     showResult($('nv-result'), 'ok', `${updated?'Novela actualizada':'Novela creada'}. <a href="${url}" target="_blank" rel="noopener">Abrir en Notion →</a>`);
@@ -317,6 +352,14 @@ $('mg-edit-novel').addEventListener('click', async () => {
     if(n.estado) $('nv-estado').value = n.estado;
     document.querySelectorAll('#nv-cats input').forEach(i => i.checked = n.categorias.includes(i.value));
     $('nv-pub').checked = n.publicada; $('nv-dest').checked = n.destacada;
+    $('nv-saga').value = n.saga || '';
+    $('nv-orden').value = n.ordenSaga ?? '';
+    // Una novela no se cruza consigo misma: se oculta de la lista.
+    document.querySelectorAll('#nv-rel label').forEach(l => {
+      const mine = l.dataset.id === n.id;
+      l.hidden = mine;
+      l.querySelector('input').checked = !mine && n.relacionadas.includes(l.dataset.id);
+    });
     $('nv-h2').textContent = 'Editar novela';
     $('nv-submit').textContent = 'Guardar cambios';
     $('nv-editbar').classList.add('show');
