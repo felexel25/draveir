@@ -1,0 +1,78 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Breadcrumb from '../components/Breadcrumb.astro';
+---
+
+<BaseLayout
+  title="Acerca del autor — Draveir"
+  description="Quién escribe las historias de Draveir: Félix Llerena, autor panameño de fantasía, ciencia ficción y misterio."
+>
+  <main class="container about" id="contenido">
+    <Breadcrumb items={[{ label: 'Acerca' }]} />
+
+    <header class="about-head">
+      <span class="eyebrow">Acerca del autor</span>
+      <span class="about-sigil" aria-hidden="true">✦</span>
+      <h1>Félix Llerena</h1>
+      <p class="about-pen">escribe como <strong>Draveir</strong></p>
+    </header>
+
+    <div class="about-body">
+      <p>
+        Soy panameño, y desde niño mi cabeza no se ha quedado quieta. Primero fue el
+        dibujo; después, casi sin notarlo, los cuentos que escribía para el colegio.
+        En 2016 empecé a dar forma a historias más elaboradas, y esa costumbre no me
+        ha soltado desde entonces.
+      </p>
+      <p>
+        Siempre me he inclinado hacia lo fantástico antes que hacia lo real. Me atraen
+        los mundos donde algo —un sistema, una máquina, una regla implacable— presiona
+        a las personas y les cobra por existir. Esa presión es lo que me interesa:
+        empuja a los personajes a comportarse como nunca lo harían en calma, y ahí,
+        justo en el límite, es donde aparecen las historias.
+      </p>
+      <p>
+        Lo que busco, en el fondo, es sencillo: que al leerme imagines lo que mi mente
+        me describe sin descanso. Ese <em>«¿y si pasara esto?»</em>, ese <em>«¿cómo
+        reaccionaría alguien aquí?»</em>. Las preguntas que me persiguen y que solo sé
+        responder escribiéndolas.
+      </p>
+      <p>
+        No soy mucho más que eso: una persona imaginativa que intenta plasmar lo que su
+        mente le lanza. El resto está en las historias.
+      </p>
+    </div>
+
+    <div class="about-cta">
+      <a class="btn btn-primary" href="/novelas">Leer las novelas</a>
+    </div>
+  </main>
+</BaseLayout>
+
+<style>
+  .about { max-width: 52rem; }
+  .about-head { text-align: center; margin: var(--space-5) 0 var(--space-6); }
+  .about-sigil {
+    display: block;
+    color: var(--brass);
+    font-size: 1.6rem;
+    margin: var(--space-4) 0 var(--space-3);
+  }
+  .about-head h1 { margin: 0; }
+  .about-pen {
+    font-family: var(--font-sans);
+    color: var(--text-muted);
+    margin: var(--space-2) 0 0;
+    letter-spacing: 0.02em;
+  }
+  .about-pen strong { color: var(--text); font-weight: 600; }
+  .about-body {
+    max-width: var(--measure);
+    margin-inline: auto;
+    font-size: var(--step-0);
+    line-height: 1.85;
+  }
+  .about-body p { margin: 0 0 var(--space-4); text-wrap: pretty; }
+  .about-body em { color: var(--text); font-style: italic; }
+  .about-cta { text-align: center; margin-top: var(--space-6); }
+</style>
