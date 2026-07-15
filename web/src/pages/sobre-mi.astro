@@ -11,7 +11,6 @@ import Breadcrumb from '../components/Breadcrumb.astro';
     <Breadcrumb items={[{ label: 'Sobre mí' }]} />
 
     <header class="about-head">
-      <span class="eyebrow">Sobre mí</span>
       <span class="about-sigil" aria-hidden="true">✦</span>
       <h1>Félix Llerena</h1>
       <p class="about-pen">escribo como <strong>Draveir</strong></p>
@@ -56,7 +55,7 @@ import Breadcrumb from '../components/Breadcrumb.astro';
     display: block;
     color: var(--brass);
     font-size: 1.6rem;
-    margin: var(--space-4) 0 var(--space-3);
+    margin: 0 0 var(--space-3);
   }
   .about-head h1 { margin: 0; }
   .about-pen {
