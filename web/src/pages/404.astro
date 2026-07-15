@@ -1,0 +1,24 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Página no encontrada — Draveir" noindex>
+  <main class="container notfound" id="contenido">
+    <div class="page-head">
+      <span class="eyebrow">Error 404</span>
+      <h1>Esta página se perdió en la niebla</h1>
+      <p>El enlace que seguiste no lleva a ninguna historia. Puede que la dirección esté mal escrita o que la página ya no exista.</p>
+    </div>
+    <div class="actions">
+      <a class="btn btn-primary" href="/">Volver al inicio</a>
+      <a class="btn btn-ghost" href="/novelas">Ver todas las novelas</a>
+    </div>
+  </main>
+</BaseLayout>
+
+<style>
+  .notfound { max-width: 40rem; text-align: center; padding: var(--space-6) var(--space-3); }
+  .notfound .page-head h1 { margin: var(--space-2) 0 var(--space-3); }
+  .notfound p { color: var(--text-muted); font-size: 1.1rem; max-width: 42ch; margin-inline: auto; }
+  .actions { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; margin-top: var(--space-5); }
+</style>
