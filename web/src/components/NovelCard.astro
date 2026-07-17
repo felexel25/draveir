@@ -8,16 +8,17 @@ interface Props {
   title: string;
   synopsis: string;
   status: string | null;
+  format?: string | null;
   categories: string[];
   searchText?: string;
 }
 
-const { slug, title, synopsis, status, categories, searchText } = Astro.props;
+const { slug, title, synopsis, status, format, categories, searchText } = Astro.props;
 const gradient = coverGradient(categories);
 const primaryCategory = categories[0];
 ---
 
-<li class="novel-card" data-search={searchText}>
+<li class="novel-card" data-search={searchText} data-format={format ?? undefined}>
   <a class="cover-link" href={`/novela/${slug}`} aria-label={title}>
     <span class="plate" style={`background:${gradient}`}>
       <span class="corner sigil" aria-hidden="true">✦</span>
@@ -30,6 +31,7 @@ const primaryCategory = categories[0];
     <p class="synopsis">{synopsis}</p>
     <div class="meta">
       {status && <span class="status">{status}</span>}
+      {format && <span class="format">{format}</span>}
       {categories.slice(0, 2).map((c) => (
         <a class="tag" href={`/categoria/${slugify(c)}`}>{c}</a>
       ))}
@@ -58,4 +60,8 @@ const primaryCategory = categories[0];
     overflow: hidden;
   }
   .meta { margin-top: auto; }
+  .format {
+    font-family: var(--font-sans); font-size: var(--step--1);
+    color: var(--text-muted); margin-right: var(--space-2);
+  }
 </style>

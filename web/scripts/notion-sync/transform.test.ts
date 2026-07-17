@@ -11,6 +11,7 @@ const novelPage: NotionPage = {
     'Slug': { rich_text: [{ plain_text: 'el-heraldo-gris' }] },
     'Sinopsis': { rich_text: [{ plain_text: 'Una carta reescribe el destino.' }] },
     'Estado': { select: { name: 'En progreso' } },
+    'Formato': { select: { name: 'Novela' } },
     'Categorías': { multi_select: [{ name: 'Fantasía' }, { name: 'Aventura' }] },
     'Etiquetas': { multi_select: [{ name: 'Magia' }] },
     'Destacada': { checkbox: true },
@@ -42,6 +43,7 @@ describe('parseNovel', () => {
       title: 'El Heraldo Gris',
       synopsis: 'Una carta reescribe el destino.',
       status: 'En progreso',
+      format: 'Novela',
       categories: ['Fantasía', 'Aventura'],
       tags: ['Magia'],
       featured: true,
@@ -57,6 +59,14 @@ describe('parseNovel', () => {
       properties: { ...novelPage.properties, 'Slug': { rich_text: [] } },
     };
     expect(parseNovel(noSlug).slug).toBe('el-heraldo-gris');
+  });
+
+  it('deja el formato en null si la novela no lo declara', () => {
+    const sinFormato: NotionPage = {
+      id: 'n',
+      properties: { ...novelPage.properties, 'Formato': {} },
+    };
+    expect(parseNovel(sinFormato).format).toBeNull();
   });
 });
 
@@ -165,7 +175,7 @@ describe('parseNovel con sagas', () => {
 
 describe('symmetrizeRelated', () => {
   const novel = (slug: string, related: string[]): NovelData => ({
-    slug, title: slug, synopsis: '', status: null, categories: [], tags: [],
+    slug, title: slug, synopsis: '', status: null, format: null, categories: [], tags: [],
     featured: false, saga: null, sagaOrder: null, related,
   });
 

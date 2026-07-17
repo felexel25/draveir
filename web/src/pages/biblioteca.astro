@@ -42,7 +42,7 @@ const catalog = { chapterTitles, novelTitles };
       <ul class="novel-grid" id="fav-grid">
         {novels.map((n) => (
           <NovelCard slug={n.data.slug} title={n.data.title} synopsis={n.data.synopsis}
-            status={n.data.status} categories={n.data.categories} searchText={novelHaystack(n.data)} />
+            status={n.data.status} format={n.data.format} categories={n.data.categories} searchText={novelHaystack(n.data)} />
         ))}
       </ul>
     </section>

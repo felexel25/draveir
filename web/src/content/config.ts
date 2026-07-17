@@ -17,6 +17,7 @@ const novels = defineCollection({
     title: z.string(),
     synopsis: z.string(),
     status: z.string().nullable(),
+    format: z.string().nullable().default(null),
     categories: z.array(z.string()),
     tags: z.array(z.string()),
     featured: z.boolean(),

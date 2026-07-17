@@ -6,6 +6,7 @@ import Emblem from '../../components/Emblem.astro';
 import FavoriteButton from '../../components/FavoriteButton.astro';
 import { coverGradient } from '../../lib/covers';
 import { readingTime } from '../../lib/reading';
+import { formatSubtitle, formatMinutes } from '../../lib/format';
 import { slugify } from '../../lib/slug';
 import { readingOrder, positionIn } from '../../lib/saga';
 
@@ -38,6 +39,11 @@ const chapters = [
     unlocksAt: c.data.unlocksAt,
   })),
 ].sort((a, b) => a.number - b.number);
+
+// Solo los capítulos publicados: el texto de los bloqueados no está en el repo,
+// así que se anuncia lo que hoy se puede leer, no un total imaginario.
+const totalMinutes = published.length ? readingTime(published.map((c) => c.body).join(' ')) : 0;
+const subtitle = formatSubtitle(novel.data.format);
 
 const dateFmt = (iso: string) =>
   new Date(iso).toLocaleDateString('es', {
@@ -82,6 +88,16 @@ const sagaPosition = saga
         {novel.data.categories[0] && <span class="eyebrow">{novel.data.categories[0]}</span>}
         <h1>{novel.data.title}</h1>
         <p class="synopsis">{novel.data.synopsis}</p>
+        {(novel.data.format || totalMinutes > 0) && (
+          <div class="format-block">
+            {novel.data.format && (
+              <span class="format">
+                {novel.data.format}{subtitle && <span class="format-alt"> · {subtitle}</span>}
+              </span>
+            )}
+            {totalMinutes > 0 && <span class="format-time">≈ {formatMinutes(totalMinutes)} de lectura</span>}
+          </div>
+        )}
         <div class="meta">
           {saga && (
             <a class="saga-line" href={`/saga/${saga.data.slug}`}>
@@ -155,4 +171,7 @@ const sagaPosition = saga
   .saga-line { display: inline-flex; align-items: center; gap: 0.4rem; color: var(--brass); text-decoration: none; }
   .saga-line:hover { text-decoration: underline; }
   .saga-pos { color: var(--text-muted); font-size: 0.85em; }
+  .format-block { margin-top: var(--space-2); }
+  .format, .format-time { display: block; font-family: var(--font-sans); font-size: var(--step--1); color: var(--text-muted); }
+  .format-alt { font-style: italic; }
 </style>

@@ -17,6 +17,7 @@ export interface NovelData {
   title: string;
   synopsis: string;
   status: string | null;
+  format: string | null;   // Microrrelato | Relato | Relato largo | Novela corta | Novela
   categories: string[];
   tags: string[];
   featured: boolean;

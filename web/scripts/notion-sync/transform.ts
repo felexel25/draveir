@@ -50,6 +50,7 @@ export function parseNovel(
     title: plainText(p['Título']),
     synopsis: plainText(p['Sinopsis']),
     status: p['Estado']?.select?.name ?? null,
+    format: p['Formato']?.select?.name ?? null,
     categories: (p['Categorías']?.multi_select ?? []).map((o: any) => o.name),
     tags: (p['Etiquetas']?.multi_select ?? []).map((o: any) => o.name),
     featured: Boolean(p['Destacada']?.checkbox),

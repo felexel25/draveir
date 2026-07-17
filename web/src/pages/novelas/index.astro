@@ -18,6 +18,7 @@ const novels = (await getCollection('novels')).sort((a, b) =>
           title={n.data.title}
           synopsis={n.data.synopsis}
           status={n.data.status}
+          format={n.data.format}
           categories={n.data.categories}
         />
       ))}
