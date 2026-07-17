@@ -46,6 +46,7 @@ const bySlug = new Map(novels.map((n) => [n.data.slug, n.data]));
             title={n.title}
             synopsis={n.synopsis}
             status={n.status}
+            format={n.format}
             categories={n.categories}
           />
         );
