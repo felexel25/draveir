@@ -9,9 +9,10 @@ import { readingTime } from '../../lib/reading';
 import { formatSubtitle, formatMinutes } from '../../lib/format';
 import { slugify } from '../../lib/slug';
 import { readingOrder, positionIn } from '../../lib/saga';
+import { getReadableNovels } from '../../lib/novels';
 
 export async function getStaticPaths() {
-  const novels = await getCollection('novels');
+  const novels = await getReadableNovels();
   return novels.map((n) => ({ params: { slug: n.data.slug } }));
 }
 
@@ -59,7 +60,7 @@ const sagaPosition = saga
   ? positionIn(
       novel.data.slug,
       readingOrder(
-        (await getCollection('novels'))
+        (await getReadableNovels())
           .filter((n) => n.data.saga === novel.data.saga)
           .map((n) => ({ slug: n.data.slug, title: n.data.title, order: n.data.sagaOrder })),
       ),
