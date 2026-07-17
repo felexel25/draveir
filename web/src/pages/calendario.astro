@@ -4,6 +4,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import Emblem from '../components/Emblem.astro';
 import { coverGradient } from '../lib/covers';
 import { releaseLabel, nextChapterLabel, romanNumeral } from '../lib/calendar';
+import { getReadableNovels } from '../lib/novels';
 import { readingOrder } from '../lib/saga';
 
 const novels = await getCollection('novels');
@@ -24,13 +25,11 @@ for (const c of locked.filter((c) => c.data.number === 1)) {
     firstChapterAt.set(c.data.novelSlug, c.data.unlocksAt);
   }
 }
-// Legible no es "tiene capítulos publicados": una novela con el capítulo 1
-// solo programado ya tiene ficha propia y cuenta atrás — mismo criterio que
-// getReadableNovels() en lib/novels.ts.
-const readable = new Set([
-  ...chapters.map((c) => c.data.novelSlug),
-  ...locked.map((c) => c.data.novelSlug),
-]);
+// Esta página es la única que ve TODAS las novelas, anunciadas incluidas: por eso
+// usa getCollection en vez del helper. Pero quién enlaza y quién no lo decide el
+// helper, no una copia de su regla: si diverge, el calendario enlazaría a fichas
+// que no existen.
+const readable = new Set((await getReadableNovels()).map((n) => n.data.slug));
 
 // El próximo capítulo de cada novela: el programado más cercano. Una historia
 // que ya salió entera no tiene ninguno, y no muestra esta línea.
