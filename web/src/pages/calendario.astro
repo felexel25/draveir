@@ -1,0 +1,134 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Emblem from '../components/Emblem.astro';
+import { coverGradient } from '../lib/covers';
+import { releaseLabel } from '../lib/calendar';
+import { readingOrder } from '../lib/saga';
+
+const novels = await getCollection('novels');
+const chapters = await getCollection('chapters');
+const lockedChapters = await getCollection('lockedChapters');
+const phases = (await getCollection('phases')).sort((a, b) => a.data.order - b.data.order);
+
+// Fecha del capítulo 1 de cada novela: el hecho que manda sobre la promesa.
+// El capítulo 1 puede venir de cualquiera de las dos colecciones — publicado
+// (ya ocurrió) o programado (todavía una cuenta atrás) — así que miramos las
+// dos y nos quedamos con el número 1 de cada novela, venga de donde venga.
+const firstChapterAt = new Map<string, string>();
+for (const c of chapters.filter((c) => c.data.number === 1)) {
+  firstChapterAt.set(c.data.novelSlug, c.data.publishedAt);
+}
+for (const c of lockedChapters.filter((c) => c.data.number === 1)) {
+  if (!firstChapterAt.has(c.data.novelSlug)) {
+    firstChapterAt.set(c.data.novelSlug, c.data.unlocksAt);
+  }
+}
+// Legible no es "tiene capítulos publicados": una novela con el capítulo 1
+// solo programado ya tiene ficha propia y cuenta atrás — mismo criterio que
+// getReadableNovels() en lib/novels.ts.
+const readable = new Set([
+  ...chapters.map((c) => c.data.novelSlug),
+  ...lockedChapters.map((c) => c.data.novelSlug),
+]);
+
+const sections = phases
+  .map((p) => {
+    const ofPhase = novels.filter((n) => n.data.phase === p.data.slug);
+    const ordered = readingOrder(
+      ofPhase.map((n) => ({ slug: n.data.slug, title: n.data.title, order: n.data.phaseOrder })),
+    );
+    const bySlug = new Map(ofPhase.map((n) => [n.data.slug, n.data]));
+    return {
+      phase: p.data,
+      stories: ordered.map((o) => {
+        const n = bySlug.get(o.slug)!;
+        return {
+          slug: n.slug,
+          title: n.title,
+          status: n.status,
+          categories: n.categories,
+          readable: readable.has(n.slug),
+          date: releaseLabel({
+            firstChapterAt: firstChapterAt.get(n.slug) ?? null,
+            releaseWindow: n.releaseWindow,
+          }),
+        };
+      }),
+    };
+  })
+  // Una fase sin historias no promete nada: no genera sección.
+  .filter((s) => s.stories.length > 0);
+---
+
+<BaseLayout
+  title="Calendario — Draveir"
+  description="Todo lo que viene y todo lo que ya salió, fase por fase."
+>
+  <main class="container wide" id="contenido">
+    <div class="page-head">
+      <span class="eyebrow">Calendario</span>
+      <h1>Lo que viene</h1>
+      <p class="lead">Las historias por fases, en orden de publicación.</p>
+    </div>
+
+    {sections.length === 0 && <p class="empty">Aún no hay fases publicadas.</p>}
+
+    {sections.map((s) => (
+      <section class="phase">
+        <div class="phase-head">
+          <h2>{s.phase.name}</h2>
+          {s.phase.description && <p class="phase-desc">{s.phase.description}</p>}
+        </div>
+        <ol class="timeline">
+          {s.stories.map((story) => (
+            <li class="entry">
+              <span class="plate mini" style={`background:${coverGradient(story.categories)}`} aria-hidden="true">
+                <Emblem slug={story.slug} />
+              </span>
+              <div class="entry-body">
+                <h3>
+                  {story.readable
+                    ? <a href={`/novela/${story.slug}`}>{story.title}</a>
+                    : story.title}
+                </h3>
+                <p class="entry-meta">
+                  {story.date && <span class="when">{story.date}</span>}
+                  {story.readable
+                    ? story.status && <span class="status">{story.status}</span>
+                    : <span class="soon">Próximamente</span>}
+                </p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </section>
+    ))}
+  </main>
+</BaseLayout>
+
+<style>
+  .wide { max-width: 62rem; }
+  .page-head { margin-bottom: var(--space-6); }
+  .page-head h1 { margin: var(--space-1) 0 0; }
+  .lead { color: var(--text-muted); font-size: 1.1rem; margin-top: var(--space-3); }
+  .empty { color: var(--text-muted); font-family: var(--font-sans); }
+
+  .phase { margin-bottom: var(--space-6); }
+  .phase-head { border-bottom: 1px solid var(--border); padding-bottom: var(--space-3); margin-bottom: var(--space-4); }
+  .phase-head h2 { margin: 0; }
+  .phase-desc { color: var(--text-muted); max-width: 60ch; margin: var(--space-2) 0 0; }
+
+  .timeline { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--space-4); }
+  .entry { display: flex; gap: var(--space-4); align-items: center; }
+  .plate.mini { width: 64px; flex: none; aspect-ratio: 2 / 3; }
+  .entry-body h3 { margin: 0 0 var(--space-2); font-size: 1.15rem; }
+  .entry-body h3 a { color: var(--text); }
+  .entry-body h3 a:hover { color: var(--accent); }
+  .entry-meta {
+    margin: 0; display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: baseline;
+    font-family: var(--font-sans); font-size: var(--step--1);
+  }
+  .when { color: var(--text-muted); }
+  .soon { color: var(--brass); }
+</style>
