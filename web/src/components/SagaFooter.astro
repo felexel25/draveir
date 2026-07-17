@@ -1,11 +1,12 @@
 ---
-import { getCollection, getEntry } from 'astro:content';
+import { getEntry } from 'astro:content';
 import { readingOrder } from '../lib/saga';
+import { getReadableNovels } from '../lib/novels';
 
 interface Props { novelSlug: string; }
 const { novelSlug } = Astro.props;
 
-const all = await getCollection('novels');
+const all = await getReadableNovels();
 const novel = all.find((n) => n.data.slug === novelSlug);
 
 const saga = novel?.data.saga ? await getEntry('sagas', novel.data.saga) : undefined;
@@ -15,7 +16,7 @@ const siblings = saga
   ? readingOrder(
       all
         .filter((n) => n.data.saga === saga.data.slug && n.data.slug !== novelSlug)
-        .map((n) => ({ slug: n.data.slug, title: n.data.title, sagaOrder: n.data.sagaOrder })),
+        .map((n) => ({ slug: n.data.slug, title: n.data.title, order: n.data.sagaOrder })),
     )
   : [];
 
@@ -24,7 +25,7 @@ const myOrder = novel?.data.sagaOrder ?? null;
 const nextSlug =
   myOrder === null
     ? undefined
-    : siblings.find((s) => s.sagaOrder !== null && s.sagaOrder > myOrder)?.slug;
+    : siblings.find((s) => s.order !== null && s.order > myOrder)?.slug;
 
 const relatedSlugs = novel?.data.related ?? [];
 const related = relatedSlugs

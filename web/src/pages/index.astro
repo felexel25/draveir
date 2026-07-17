@@ -5,8 +5,9 @@ import NovelCard from '../components/NovelCard.astro';
 import { coverGradient } from '../lib/covers';
 import { novelHaystack } from '../lib/search';
 import Emblem from '../components/Emblem.astro';
+import { getReadableNovels } from '../lib/novels';
 
-const novels = (await getCollection('novels')).sort((a, b) =>
+const novels = (await getReadableNovels()).sort((a, b) =>
   a.data.title.localeCompare(b.data.title, 'es'),
 );
 const chapters = await getCollection('chapters');

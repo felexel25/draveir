@@ -1,9 +1,9 @@
 ---
-import { getCollection } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import NovelCard from '../../components/NovelCard.astro';
+import { getReadableNovels } from '../../lib/novels';
 
-const novels = (await getCollection('novels')).sort((a, b) =>
+const novels = (await getReadableNovels()).sort((a, b) =>
   a.data.title.localeCompare(b.data.title, 'es'),
 );
 ---

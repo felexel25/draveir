@@ -138,12 +138,17 @@ Hoy `fetchNovels` filtra por el check `Publicada`, así que una historia
 anunciada sin capítulos nunca llegaría al repo.
 
 **Decisión**: `Publicada` pasa a significar *visible en la web*. La pregunta
-«¿se puede leer?» se deduce de un hecho que ya existe — tener o no capítulos
-publicados — en vez de un segundo check que habría que mantener sincronizado a
-mano. Un campo menos y ninguna fuente de verdad duplicada.
+«¿se puede leer?» se deduce de un hecho que ya existe — tener o no capítulos —
+en vez de un segundo check que habría que mantener sincronizado a mano. Un campo
+menos y ninguna fuente de verdad duplicada.
 
-Consecuencia: hace falta un helper `hasPublishedChapters(slug)` y filtrar por él
-en los sitios donde hoy se asume que toda novela sincronizada es legible:
+Cuentan **los capítulos publicados y también los programados**. Una novela cuyo
+calendario está entero por delante (todos sus capítulos en `lockedChapters`, aún
+sin abrir) ya tiene una ficha legítima: la lista con sus cuentas atrás. Solo es
+«anunciada» la que no tiene ningún capítulo en absoluto.
+
+Consecuencia: hace falta un helper `getReadableNovels()` y filtrar por él en los
+sitios donde hoy se asume que toda novela sincronizada es legible:
 
 - `/novelas` (catálogo) — solo legibles.
 - `/buscar` — solo legibles.

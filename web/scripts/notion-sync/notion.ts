@@ -1,12 +1,13 @@
 import { Client } from '@notionhq/client';
 import { NotionToMarkdown } from 'notion-to-md';
-import type { NotionPage, NovelData, ChapterData, SagaData } from './types';
-import { parseNovel, parseChapterMeta, parseSaga, novelSlugOf, symmetrizeRelated } from './transform';
+import type { NotionPage, NovelData, ChapterData, SagaData, PhaseData } from './types';
+import { parseNovel, parseChapterMeta, parseSaga, parsePhase, novelSlugOf, symmetrizeRelated } from './transform';
 import { isUnlocked } from '../../src/lib/unlock';
 
 const NOVELS_DB = 'c03f5b38-513f-4c0f-8f91-1b69cad31673';
 const CHAPTERS_DB = '4ac20247-41d9-46b7-b9ca-cae507c3eaf2';
 const SAGAS_DB = '59e14fc6-5381-407b-99c2-c26d4e532a89';
+const PHASES_DB = '84921638-4c16-43b6-bf1f-4daa4e030ee5';
 
 const token = process.env.NOTION_TOKEN;
 if (!token) throw new Error('Falta NOTION_TOKEN en el entorno.');
@@ -45,14 +46,25 @@ export async function fetchSagaSlugMap(): Promise<Map<string, string>> {
   return new Map(pages.map((page) => [page.id, parseSaga(page).slug]));
 }
 
+export async function fetchPhases(): Promise<PhaseData[]> {
+  const pages = await queryAll(PHASES_DB);
+  return pages.map((page) => parsePhase(page)).sort((a, b) => a.order - b.order);
+}
+
+export async function fetchPhaseSlugMap(): Promise<Map<string, string>> {
+  const pages = await queryAll(PHASES_DB);
+  return new Map(pages.map((page) => [page.id, parsePhase(page).slug]));
+}
+
 export async function fetchNovels(
   sagaSlugById: Map<string, string>,
+  phaseSlugById: Map<string, string>,
 ): Promise<{ novels: NovelData[]; novelSlugById: Map<string, string> }> {
   const pages = await queryAll(NOVELS_DB, PUBLISHED_NOVELS_FILTER);
   // El mapa se construye primero: `Relacionadas` apunta a estas mismas novelas.
   const novelSlugById = new Map(pages.map((page) => [page.id, novelSlugOf(page)]));
   const novels = symmetrizeRelated(
-    pages.map((page) => parseNovel(page, sagaSlugById, novelSlugById)),
+    pages.map((page) => parseNovel(page, sagaSlugById, novelSlugById, phaseSlugById)),
   );
   return { novels, novelSlugById };
 }

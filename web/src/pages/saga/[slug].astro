@@ -4,9 +4,10 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import NovelCard from '../../components/NovelCard.astro';
 import Breadcrumb from '../../components/Breadcrumb.astro';
 import { readingOrder } from '../../lib/saga';
+import { getReadableNovels } from '../../lib/novels';
 
 export async function getStaticPaths() {
-  const novels = await getCollection('novels');
+  const novels = await getReadableNovels();
   const sagas = await getCollection('sagas');
   // Una saga sin novelas publicadas no tiene página: prometería un mundo y no
   // daría nada que leer. Aparece sola en cuanto se publique la primera.
@@ -22,9 +23,9 @@ interface Props { name: string; description: string; }
 const { name, description } = Astro.props;
 const { slug } = Astro.params;
 
-const novels = (await getCollection('novels')).filter((n) => n.data.saga === slug);
+const novels = (await getReadableNovels()).filter((n) => n.data.saga === slug);
 const ordered = readingOrder(
-  novels.map((n) => ({ slug: n.data.slug, title: n.data.title, sagaOrder: n.data.sagaOrder })),
+  novels.map((n) => ({ slug: n.data.slug, title: n.data.title, order: n.data.sagaOrder })),
 );
 const bySlug = new Map(novels.map((n) => [n.data.slug, n.data]));
 ---

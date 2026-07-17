@@ -30,11 +30,16 @@ Spec: `docs/superpowers/specs/2026-07-16-formato-y-calendario-design.md` (Parte 
    `Nombre` (title), `Slug` (text), `Descripción` (text), `Orden` (number).
 2. En la BD de **Novelas**, crear: relación `Fase` (apunta a `Fases`), número
    `Orden en fase`, y texto `Ventana de lanzamiento`.
-3. **Pasarle al implementador el ID de la BD `Fases`.** Se saca de la URL de la
-   base en Notion: `notion.so/<workspace>/<ESTE_ES_EL_ID>?v=…`, y se escribe con
-   guiones (formato UUID), como los tres IDs que ya hay en
-   `scripts/notion-sync/notion.ts:7-9`. La Task 2 está bloqueada sin este dato:
-   **no lo inventes, pídelo.**
+3. **El ID de la BD `Fases`** ya está confirmado contra el Notion real:
+   `84921638-4c16-43b6-bf1f-4daa4e030ee5`. Ya viene escrito en la Task 2.
+
+**Estado verificado en Notion el 2026-07-17**: los tres prerrequisitos están
+hechos. La BD `Fases` existe con `Nombre`/`Slug`/`Descripción`/`Orden` (más una
+relación inversa `Historias` que el sync ignora), y Novelas tiene `Fase`,
+`Orden en fase` y `Ventana de lanzamiento`. Hay 3 fases y 15 historias, de las
+cuales 10 son anunciadas (sin capítulos) y tienen `Publicada` SIN marcar
+todavía: hasta que el autor las marque, el sync no las trae y el calendario
+solo muestra la primera fase. Es el estado esperado, no un fallo.
 
 ## File Structure
 
@@ -396,7 +401,7 @@ En `web/scripts/notion-sync/notion.ts`, añadir la constante junto a las otras
 tres (líneas 7-9), con el ID REAL que te dio Félix:
 
 ```ts
-const PHASES_DB = '<el ID que te pasó Félix, con guiones>';
+const PHASES_DB = '84921638-4c16-43b6-bf1f-4daa4e030ee5';
 ```
 
 Añadir al import de tipos `PhaseData` y al de transform `parsePhase`:
@@ -708,12 +713,16 @@ Crear `web/src/lib/novels.ts`:
 ```ts
 import { getCollection, type CollectionEntry } from 'astro:content';
 
-// Una historia anunciada (sincronizada pero sin ningún capítulo publicado) solo
-// existe en /calendario. En cualquier otro sitio sería una ficha vacía y un clic
-// muerto — misma regla que "una saga sin novelas publicadas no genera página".
+// Una historia anunciada (sincronizada pero sin ningún capítulo) solo existe en
+// /calendario. En cualquier otro sitio sería una ficha vacía y un clic muerto —
+// misma regla que "una saga sin novelas publicadas no genera página".
+// Los capítulos PROGRAMADOS cuentan: una novela con todo el calendario por
+// delante ya tiene ficha, la de sus cuentas atrás.
 export async function getReadableNovels(): Promise<CollectionEntry<'novels'>[]> {
-  const chapters = await getCollection('chapters');
-  const conCapitulos = new Set(chapters.map((c) => c.data.novelSlug));
+  const conCapitulos = new Set([
+    ...(await getCollection('chapters')).map((c) => c.data.novelSlug),
+    ...(await getCollection('lockedChapters')).map((c) => c.data.novelSlug),
+  ]);
   return (await getCollection('novels')).filter((n) => conCapitulos.has(n.data.slug));
 }
 ```
@@ -745,18 +754,26 @@ está. Solo se llama para slugs que `getStaticPaths` ya aprobó.
 - [ ] **Step 3: Verificar que nada desaparece**
 
 Run: `cd web && npm run build`
-Expected: build OK. En `web/dist/` deben seguir existiendo las mismas carpetas
-de novela que antes del cambio — hoy todas las novelas sincronizadas tienen
-capítulos, así que el filtro aún no quita nada. Comprobar:
+Expected: **56 páginas**, las mismas que antes del cambio — hoy todas las novelas
+sincronizadas tienen capítulos, así que el filtro no debe quitar nada.
+
+No basta con mirar si existe la carpeta `dist/novela/<slug>/`: existe igual
+aunque la ficha se pierda, porque las subcarpetas de los capítulos la crean. Hay
+que comprobar el `index.html` de cada ficha:
 
 ```bash
-ls web/dist/novela
+cd web
+for n in ascension-de-los-olvidados la-fragmentacion-del-cuarzo la-niebla-ceniza que-preguntas tarsis; do
+  test -f "dist/novela/$n/index.html" && echo "OK $n" || echo "FALTA $n"
+done
+ls dist/saga/
 ```
 
-Expected: las cinco novelas actuales (`ascension-de-los-olvidados`,
-`la-fragmentacion-del-cuarzo`, `la-niebla-ceniza`, `que-preguntas`, `tarsis`).
+Expected: las cinco dicen `OK`, y las sagas son `ascension`, `demiurgo` y `stasis`.
 
-Si alguna desaparece, el filtro está mal: párate y revisa antes de seguir.
+Si falta alguna, el filtro está mal: párate y revisa antes de seguir. Ojo con
+`la-niebla-ceniza` y `que-preguntas`: hoy tienen 0 capítulos publicados y solo
+capítulos programados. Son la prueba de fuego de que los programados cuentan.
 
 - [ ] **Step 4: Verificar tipos**
 

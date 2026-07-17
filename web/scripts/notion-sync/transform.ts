@@ -1,4 +1,4 @@
-import type { NotionPage, NovelData, ChapterMeta, SagaData } from './types';
+import type { NotionPage, NovelData, ChapterMeta, SagaData, PhaseData } from './types';
 
 const plainText = (prop: any): string =>
   (prop?.title ?? prop?.rich_text ?? []).map((t: any) => t.plain_text).join('').trim();
@@ -32,6 +32,19 @@ export function parseSaga(page: NotionPage): SagaData {
   };
 }
 
+// Misma forma que una saga: nombre, slug, descripción y orden.
+export function parsePhase(page: NotionPage): PhaseData {
+  const p = page.properties;
+  const name = plainText(p['Nombre']);
+  const rawSlug = plainText(p['Slug']);
+  return {
+    slug: rawSlug || slugify(name),
+    name,
+    description: plainText(p['Descripción']),
+    order: p['Orden']?.number ?? 0,
+  };
+}
+
 // El slug de una novela sin resolver relaciones: hace falta para construir el
 // mapa id→slug ANTES de poder resolver `Relacionadas`, que apunta a novelas.
 export function novelSlugOf(page: NotionPage): string {
@@ -43,6 +56,7 @@ export function parseNovel(
   page: NotionPage,
   sagaSlugById?: Map<string, string>,
   novelSlugById?: Map<string, string>,
+  phaseSlugById?: Map<string, string>,
 ): NovelData {
   const p = page.properties;
   return {
@@ -56,6 +70,9 @@ export function parseNovel(
     featured: Boolean(p['Destacada']?.checkbox),
     saga: relationSlugs(p['Saga'], sagaSlugById)[0] ?? null,
     sagaOrder: p['Orden en saga']?.number ?? null,
+    phase: relationSlugs(p['Fase'], phaseSlugById)[0] ?? null,
+    phaseOrder: p['Orden en fase']?.number ?? null,
+    releaseWindow: plainText(p['Ventana de lanzamiento']) || null,
     related: relationSlugs(p['Relacionadas'], novelSlugById),
   };
 }

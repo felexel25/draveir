@@ -12,6 +12,15 @@ export interface SagaData {
   order: number;
 }
 
+// Una fase agrupa historias por momento de publicación, no por mundo: es el eje
+// del calendario, mientras que la saga es el eje narrativo.
+export interface PhaseData {
+  slug: string;
+  name: string;
+  description: string;
+  order: number;
+}
+
 export interface NovelData {
   slug: string;
   title: string;
@@ -23,6 +32,9 @@ export interface NovelData {
   featured: boolean;
   saga: string | null;      // slug de la saga, o null
   sagaOrder: number | null; // posición de lectura dentro de la saga
+  phase: string | null;         // slug de la fase del calendario, o null
+  phaseOrder: number | null;    // posición dentro de la fase
+  releaseWindow: string | null; // texto libre: "Finales de 2027", "Por anunciar"
   related: string[];        // slugs de novelas que se cruzan con esta
 }
 

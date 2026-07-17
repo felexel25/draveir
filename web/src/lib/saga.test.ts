@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { readingOrder, positionIn, type SagaNovel } from './saga';
+import { readingOrder, positionIn, type OrderedNovel } from './saga';
 
-const n = (slug: string, sagaOrder: number | null, title = slug): SagaNovel =>
-  ({ slug, title, sagaOrder });
+const n = (slug: string, order: number | null, title = slug): OrderedNovel =>
+  ({ slug, title, order });
 
 describe('readingOrder', () => {
-  it('ordena por sagaOrder', () => {
+  it('ordena por order', () => {
     const out = readingOrder([n('c', 3), n('a', 1), n('b', 2)]);
     expect(out.map((x) => x.slug)).toEqual(['a', 'b', 'c']);
   });

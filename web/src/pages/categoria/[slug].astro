@@ -1,13 +1,13 @@
 ---
-import { getCollection } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import NovelCard from '../../components/NovelCard.astro';
 import Breadcrumb from '../../components/Breadcrumb.astro';
 import { collectTaxonomy } from '../../lib/taxonomy';
 import { slugify } from '../../lib/slug';
+import { getReadableNovels } from '../../lib/novels';
 
 export async function getStaticPaths() {
-  const novels = await getCollection('novels');
+  const novels = await getReadableNovels();
   const cats = collectTaxonomy(novels.map((n) => n.data), 'categories');
   return cats.map((c) => ({ params: { slug: c.slug }, props: { name: c.name } }));
 }
@@ -16,7 +16,7 @@ interface Props { name: string; }
 const { name } = Astro.props;
 const { slug } = Astro.params;
 
-const novels = (await getCollection('novels'))
+const novels = (await getReadableNovels())
   .filter((n) => n.data.categories.some((c) => slugify(c) === slug))
   .sort((a, b) => a.data.title.localeCompare(b.data.title, 'es'));
 ---
