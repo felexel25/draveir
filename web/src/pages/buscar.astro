@@ -7,11 +7,24 @@ import { novelHaystack } from '../lib/search';
 const novels = (await getCollection('novels')).sort((a, b) =>
   a.data.title.localeCompare(b.data.title, 'es'),
 );
+
+// Solo los formatos que existen en el catálogo: un chip que no filtra nada es
+// una promesa vacía. El orden es el de la taxonomía, de menor a mayor.
+const ORDER = ['Microrrelato', 'Relato', 'Relato largo', 'Novela corta', 'Novela'];
+const present = new Set(novels.map((n) => n.data.format).filter(Boolean) as string[]);
+const formats = ORDER.filter((f) => present.has(f));
 ---
 
 <BaseLayout title="Buscar — Draveir" noindex>
   <main class="container wide" id="contenido">
     <h1>Buscar</h1>
+    {formats.length > 0 && (
+      <div class="chips" role="group" aria-label="Filtrar por formato">
+        {formats.map((f) => (
+          <button type="button" class="chip" data-chip={f} aria-pressed="false">{f}</button>
+        ))}
+      </div>
+    )}
     <input
       id="search-input"
       type="search"
@@ -28,6 +41,7 @@ const novels = (await getCollection('novels')).sort((a, b) =>
           synopsis={n.data.synopsis}
           status={n.data.status}
           categories={n.data.categories}
+          format={n.data.format}
           searchText={novelHaystack(n.data)}
         />
       ))}
@@ -49,6 +63,17 @@ const novels = (await getCollection('novels')).sort((a, b) =>
     font-size: var(--step-0);
   }
   .search-empty { color: var(--text-muted); font-family: var(--font-sans); }
+  .chips { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-3); }
+  .chip {
+    font-family: var(--font-sans); font-size: var(--step--1); color: var(--text-muted);
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 999px; padding: 0.35rem 0.85rem; cursor: pointer;
+  }
+  .chip:hover { color: var(--text); border-color: var(--accent); }
+  .chip[aria-pressed='true'] { color: var(--text); border-color: var(--brass); }
+  @media (prefers-reduced-motion: no-preference) {
+    .chip { transition: color 0.15s ease, border-color 0.15s ease; }
+  }
   .novel-grid {
     list-style: none; padding: 0; display: grid; gap: var(--space-5);
     grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
@@ -60,17 +85,33 @@ const novels = (await getCollection('novels')).sort((a, b) =>
 
   const input = document.getElementById('search-input') as HTMLInputElement | null;
   const cards = Array.from(document.querySelectorAll<HTMLElement>('#search-results [data-search]'));
+  const chips = Array.from(document.querySelectorAll<HTMLButtonElement>('.chip'));
   const empty = document.getElementById('search-empty');
+  let activeFormat: string | null = null;
 
-  input?.addEventListener('input', () => {
-    const terms = normalizeText(input.value).trim().split(/\s+/).filter(Boolean);
+  const apply = () => {
+    const terms = normalizeText(input?.value ?? '').trim().split(/\s+/).filter(Boolean);
     let visible = 0;
     for (const card of cards) {
       const hay = card.dataset.search ?? '';
-      const match = terms.every((t) => hay.includes(t));
+      const match =
+        terms.every((t) => hay.includes(t)) &&
+        (activeFormat === null || card.dataset.format === activeFormat);
       card.style.display = match ? '' : 'none';
       if (match) visible += 1;
     }
     if (empty) empty.hidden = visible !== 0;
-  });
+  };
+
+  input?.addEventListener('input', apply);
+
+  // Selección única: pulsar el chip activo lo desactiva y vuelve a "todos".
+  for (const chip of chips) {
+    chip.addEventListener('click', () => {
+      const value = chip.dataset.chip ?? null;
+      activeFormat = activeFormat === value ? null : value;
+      for (const c of chips) c.setAttribute('aria-pressed', String(c.dataset.chip === activeFormat));
+      apply();
+    });
+  }
 </script>
