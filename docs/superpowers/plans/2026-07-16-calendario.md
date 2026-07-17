@@ -713,12 +713,16 @@ Crear `web/src/lib/novels.ts`:
 ```ts
 import { getCollection, type CollectionEntry } from 'astro:content';
 
-// Una historia anunciada (sincronizada pero sin ningún capítulo publicado) solo
-// existe en /calendario. En cualquier otro sitio sería una ficha vacía y un clic
-// muerto — misma regla que "una saga sin novelas publicadas no genera página".
+// Una historia anunciada (sincronizada pero sin ningún capítulo) solo existe en
+// /calendario. En cualquier otro sitio sería una ficha vacía y un clic muerto —
+// misma regla que "una saga sin novelas publicadas no genera página".
+// Los capítulos PROGRAMADOS cuentan: una novela con todo el calendario por
+// delante ya tiene ficha, la de sus cuentas atrás.
 export async function getReadableNovels(): Promise<CollectionEntry<'novels'>[]> {
-  const chapters = await getCollection('chapters');
-  const conCapitulos = new Set(chapters.map((c) => c.data.novelSlug));
+  const conCapitulos = new Set([
+    ...(await getCollection('chapters')).map((c) => c.data.novelSlug),
+    ...(await getCollection('lockedChapters')).map((c) => c.data.novelSlug),
+  ]);
   return (await getCollection('novels')).filter((n) => conCapitulos.has(n.data.slug));
 }
 ```
@@ -750,18 +754,26 @@ está. Solo se llama para slugs que `getStaticPaths` ya aprobó.
 - [ ] **Step 3: Verificar que nada desaparece**
 
 Run: `cd web && npm run build`
-Expected: build OK. En `web/dist/` deben seguir existiendo las mismas carpetas
-de novela que antes del cambio — hoy todas las novelas sincronizadas tienen
-capítulos, así que el filtro aún no quita nada. Comprobar:
+Expected: **56 páginas**, las mismas que antes del cambio — hoy todas las novelas
+sincronizadas tienen capítulos, así que el filtro no debe quitar nada.
+
+No basta con mirar si existe la carpeta `dist/novela/<slug>/`: existe igual
+aunque la ficha se pierda, porque las subcarpetas de los capítulos la crean. Hay
+que comprobar el `index.html` de cada ficha:
 
 ```bash
-ls web/dist/novela
+cd web
+for n in ascension-de-los-olvidados la-fragmentacion-del-cuarzo la-niebla-ceniza que-preguntas tarsis; do
+  test -f "dist/novela/$n/index.html" && echo "OK $n" || echo "FALTA $n"
+done
+ls dist/saga/
 ```
 
-Expected: las cinco novelas actuales (`ascension-de-los-olvidados`,
-`la-fragmentacion-del-cuarzo`, `la-niebla-ceniza`, `que-preguntas`, `tarsis`).
+Expected: las cinco dicen `OK`, y las sagas son `ascension`, `demiurgo` y `stasis`.
 
-Si alguna desaparece, el filtro está mal: párate y revisa antes de seguir.
+Si falta alguna, el filtro está mal: párate y revisa antes de seguir. Ojo con
+`la-niebla-ceniza` y `que-preguntas`: hoy tienen 0 capítulos publicados y solo
+capítulos programados. Son la prueba de fuego de que los programados cuentan.
 
 - [ ] **Step 4: Verificar tipos**
 
