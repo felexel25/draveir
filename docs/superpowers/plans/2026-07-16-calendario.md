@@ -50,6 +50,7 @@ Spec: `docs/superpowers/specs/2026-07-16-formato-y-calendario-design.md` (Parte 
 | `scripts/notion-sync/index.ts` | Orquestar las fases. |
 | `scripts/notion-sync/writeContent.ts` | Escribir `src/content/phases/*.json`. |
 | `src/content/config.ts` | Colección `phases` y campos nuevos en `novels`. |
+| `.gitignore` (raíz) | Ignorar `web/src/content/phases/`, como los otros directorios que genera el sync. |
 | `src/pages/calendario.astro` (nuevo) | La página. |
 | `src/components/Header.astro` | Enlace en la navegación. |
 | `src/pages/index.astro`, `novelas/index.astro`, `biblioteca.astro`, `buscar.astro`, `categoria/[slug].astro`, `etiqueta/[slug].astro`, `saga/[slug].astro`, `novela/[slug].astro` | Usar `getReadableNovels()` en vez de `getCollection('novels')`. |
@@ -546,16 +547,27 @@ export const collections = { sagas, phases, novels, chapters, lockedChapters };
 Los `default(null)` son deliberados: los JSON que ya están en el repo no tienen
 estos campos y el build debe seguir funcionando sin volver a sincronizar.
 
-- [ ] **Step 10: Crear el directorio de la colección vacía**
+- [ ] **Step 10: Ignorar el contenido generado y crear el directorio en local**
 
-Astro se queja de una colección declarada cuyo directorio no existe. Crear
-`web/src/content/phases/.gitkeep` vacío para que la colección exista aunque el
-sync aún no se haya ejecutado.
+Los directorios de contenido NO se versionan: los genera el sync en cada build.
+`.gitignore` (en la RAÍZ del repo, no en `web/`) ya lista los cuatro que existen;
+`phases` tiene que entrar en la misma lista, junto a `web/src/content/sagas/`:
+
+```
+web/src/content/phases/
+```
+
+Astro sí necesita que el directorio exista en disco para resolver la colección,
+y en local el sync todavía no lo ha creado. Créalo vacío para poder construir:
 
 ```bash
 mkdir -p web/src/content/phases
-touch web/src/content/phases/.gitkeep
 ```
+
+No lo commitees ni le pongas un `.gitkeep`: en CI el sync corre antes del build
+y lo crea. Comprueba con `git status` que no aparece nada de
+`web/src/content/phases/` para commitear — si aparece, la línea del `.gitignore`
+está mal.
 
 - [ ] **Step 11: Verificar**
 
@@ -565,7 +577,7 @@ Expected: PASS, 0 errores, build OK.
 - [ ] **Step 12: Commit**
 
 ```bash
-git add web/scripts/notion-sync web/src/content/config.ts web/src/content/phases/.gitkeep
+git add web/scripts/notion-sync web/src/content/config.ts .gitignore
 git commit -m "Sync: fases del calendario y ventana de lanzamiento"
 ```
 
