@@ -31,21 +31,26 @@ export function releaseLabel({ firstChapterAt, releaseWindow }: ReleaseInput): s
   return releaseWindow || null;
 }
 
-// El momento del próximo capítulo programado, ya formateado. El autor publica
-// a las 7 PM hora de Panamá. El locale español escribe "7:00 p. m.", que en
-// una línea de metadatos se lee como ruido. Se normaliza a la forma corta.
+// El momento del próximo capítulo programado, ya formateado. El autor publica a
+// las 7 PM hora de Panamá, y el locale español escribe esa franja como
+// "7:00 p. m." — ruido en una línea de metadatos.
+//
+// Se arma pieza a pieza en vez de limpiar el texto ya montado: cada versión de
+// ICU puntúa y espacia distinto ("p. m.", "p.m.", con espacios finos), y esto
+// lo compila una máquina (Cloudflare) que no es la que corre los tests. Un
+// `replace` sobre el texto final pasaba en CI y fallaba en producción.
 export function nextChapterLabel(iso: string): string | null {
   const d = parseFecha(iso);
   if (Number.isNaN(d.getTime())) return null;
-  const TZ = 'America/Panama';
-  const dia = d.toLocaleDateString('es', {
-    weekday: 'short', day: 'numeric', month: 'short', timeZone: TZ,
-  });
-  const hora = d
-    .toLocaleTimeString('es', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: TZ })
-    .replace('p. m.', 'PM')
-    .replace('a. m.', 'AM');
-  return `${dia.replace(',', '')} · ${hora}`;
+  const partes = new Intl.DateTimeFormat('es', {
+    weekday: 'short', day: 'numeric', month: 'short',
+    hour: 'numeric', minute: '2-digit', hour12: true,
+    timeZone: 'America/Panama',
+  }).formatToParts(d);
+  const p = (tipo: Intl.DateTimeFormatPartTypes): string =>
+    partes.find((x) => x.type === tipo)?.value.replace('.', '') ?? '';
+  const franja = p('dayPeriod').toLowerCase().startsWith('a') ? 'AM' : 'PM';
+  return `${p('weekday')} ${p('day')} ${p('month')} · ${p('hour')}:${p('minute')} ${franja}`;
 }
 
 // La fase se anuncia con su número, como Marvel: "FASE I". El número sale de
