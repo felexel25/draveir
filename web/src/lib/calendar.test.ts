@@ -51,6 +51,12 @@ describe('nextChapterLabel', () => {
   it('una fecha ilegible no rompe la página', () => {
     expect(nextChapterLabel('el jueves')).toBeNull();
   });
+
+  // Los capítulos programados salen del mismo campo de Notion que las fechas de
+  // estreno, así que pueden venir igual de sueltos, sin hora.
+  it('una fecha sin hora se queda en su día, no retrocede al anterior', () => {
+    expect(nextChapterLabel('2026-07-18')).toBe('sáb 18 jul · 12:00 PM');
+  });
 });
 
 describe('romanNumeral', () => {

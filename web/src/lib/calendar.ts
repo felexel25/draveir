@@ -35,7 +35,7 @@ export function releaseLabel({ firstChapterAt, releaseWindow }: ReleaseInput): s
 // a las 7 PM hora de Panamá. El locale español escribe "7:00 p. m.", que en
 // una línea de metadatos se lee como ruido. Se normaliza a la forma corta.
 export function nextChapterLabel(iso: string): string | null {
-  const d = new Date(iso);
+  const d = parseFecha(iso);
   if (Number.isNaN(d.getTime())) return null;
   const TZ = 'America/Panama';
   const dia = d.toLocaleDateString('es', {
