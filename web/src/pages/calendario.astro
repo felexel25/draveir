@@ -3,12 +3,12 @@ import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Emblem from '../components/Emblem.astro';
 import { coverGradient } from '../lib/covers';
-import { releaseLabel } from '../lib/calendar';
+import { releaseLabel, nextChapterLabel, romanNumeral } from '../lib/calendar';
 import { readingOrder } from '../lib/saga';
 
 const novels = await getCollection('novels');
 const chapters = await getCollection('chapters');
-const lockedChapters = await getCollection('lockedChapters');
+const locked = await getCollection('lockedChapters');
 const phases = (await getCollection('phases')).sort((a, b) => a.data.order - b.data.order);
 
 // Fecha del capítulo 1 de cada novela: el hecho que manda sobre la promesa.
@@ -19,7 +19,7 @@ const firstChapterAt = new Map<string, string>();
 for (const c of chapters.filter((c) => c.data.number === 1)) {
   firstChapterAt.set(c.data.novelSlug, c.data.publishedAt);
 }
-for (const c of lockedChapters.filter((c) => c.data.number === 1)) {
+for (const c of locked.filter((c) => c.data.number === 1)) {
   if (!firstChapterAt.has(c.data.novelSlug)) {
     firstChapterAt.set(c.data.novelSlug, c.data.unlocksAt);
   }
@@ -29,8 +29,18 @@ for (const c of lockedChapters.filter((c) => c.data.number === 1)) {
 // getReadableNovels() en lib/novels.ts.
 const readable = new Set([
   ...chapters.map((c) => c.data.novelSlug),
-  ...lockedChapters.map((c) => c.data.novelSlug),
+  ...locked.map((c) => c.data.novelSlug),
 ]);
+
+// El próximo capítulo de cada novela: el programado más cercano. Una historia
+// que ya salió entera no tiene ninguno, y no muestra esta línea.
+const nextChapter = new Map<string, { number: number; at: string }>();
+for (const c of locked) {
+  const prev = nextChapter.get(c.data.novelSlug);
+  if (!prev || c.data.unlocksAt < prev.at) {
+    nextChapter.set(c.data.novelSlug, { number: c.data.number, at: c.data.unlocksAt });
+  }
+}
 
 const sections = phases
   .map((p) => {
@@ -53,12 +63,20 @@ const sections = phases
             firstChapterAt: firstChapterAt.get(n.slug) ?? null,
             releaseWindow: n.releaseWindow,
           }),
+          next: (() => {
+            const n2 = nextChapter.get(n.slug);
+            const label = n2 ? nextChapterLabel(n2.at) : null;
+            return label ? `Cap. ${n2!.number} · ${label}` : null;
+          })(),
         };
       }),
     };
   })
   // Una fase sin historias no promete nada: no genera sección.
-  .filter((s) => s.stories.length > 0);
+  .filter((s) => s.stories.length > 0)
+  // El número de fase se asigna DESPUÉS de descartar las vacías: si la fase 2
+  // se queda sin historias, no debe verse un salto de "Fase I" a "Fase III".
+  .map((s, i) => ({ ...s, number: i + 1 }));
 ---
 
 <BaseLayout
@@ -77,12 +95,17 @@ const sections = phases
     {sections.map((s) => (
       <section class="phase">
         <div class="phase-head">
+          <span class="phase-num">Fase {romanNumeral(s.number)}</span>
           <h2>{s.phase.name}</h2>
+          <p class="phase-count">
+            {s.stories.length} {s.stories.length === 1 ? 'historia' : 'historias'}
+          </p>
           {s.phase.description && <p class="phase-desc">{s.phase.description}</p>}
         </div>
         <ol class="timeline">
           {s.stories.map((story) => (
-            <li class="entry">
+            <li class={story.readable ? 'entry' : 'entry is-soon'}>
+              <span class="node" aria-hidden="true">✦</span>
               <span class="plate mini" style={`background:${coverGradient(story.categories)}`} aria-hidden="true">
                 <Emblem slug={story.slug} />
               </span>
@@ -98,6 +121,7 @@ const sections = phases
                     ? story.status && <span class="status">{story.status}</span>
                     : <span class="soon">Próximamente</span>}
                 </p>
+                {story.next && <p class="entry-next">{story.next}</p>}
               </div>
             </li>
           ))}
@@ -115,20 +139,101 @@ const sections = phases
   .empty { color: var(--text-muted); font-family: var(--font-sans); }
 
   .phase { margin-bottom: var(--space-6); }
-  .phase-head { border-bottom: 1px solid var(--border); padding-bottom: var(--space-3); margin-bottom: var(--space-4); }
-  .phase-head h2 { margin: 0; }
-  .phase-desc { color: var(--text-muted); max-width: 60ch; margin: var(--space-2) 0 0; }
+  .phase-head {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: var(--space-3);
+    margin-bottom: var(--space-5);
+  }
+  /* El mismo interletrado de la marca en el header: es la voz de la casa. */
+  .phase-num {
+    display: block;
+    font-family: var(--font-sans);
+    font-size: var(--step--1);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.24em;
+    color: var(--brass);
+    margin-bottom: var(--space-2);
+  }
+  .phase-head h2 { margin: 0; font-size: var(--step-2); }
+  .phase-count {
+    font-family: var(--font-sans);
+    font-size: var(--step--1);
+    color: var(--text-muted);
+    margin: var(--space-1) 0 0;
+  }
+  .phase-desc { color: var(--text-muted); max-width: 60ch; margin: var(--space-3) 0 0; }
 
-  .timeline { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--space-4); }
-  .entry { display: flex; gap: var(--space-4); align-items: center; }
-  .plate.mini { width: 64px; flex: none; aspect-ratio: 2 / 3; }
-  .entry-body h3 { margin: 0 0 var(--space-2); font-size: 1.15rem; }
+  /* El rail: un hilo de latón con nodos ✦, el sigilo de la marca. La línea
+     corre por detrás; cada nodo se asienta sobre el fondo para taparla. */
+  .timeline {
+    list-style: none;
+    margin: 0;
+    padding: 0 0 0 var(--space-5);
+    display: grid;
+    gap: var(--space-5);
+    position: relative;
+  }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    top: 0.5rem;
+    bottom: 0.5rem;
+    left: 0.34rem;
+    width: 1px;
+    background: var(--border);
+  }
+
+  .entry { display: flex; gap: var(--space-4); align-items: center; position: relative; }
+  .node {
+    position: absolute;
+    left: calc(var(--space-5) * -1);
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0.7rem;
+    text-align: center;
+    font-size: 0.7rem;
+    line-height: 1;
+    background: var(--bg);
+    padding: var(--space-1) 0;
+    color: var(--brass);
+  }
+  /* El hilo se apaga hacia el futuro: lo que aún no existe pesa menos. */
+  .entry.is-soon .node { color: var(--line-bright); }
+
+  .plate.mini { width: 56px; flex: none; aspect-ratio: 2 / 3; }
+
+  /* La página-cartel del sitio: el único sitio donde los títulos van en caja alta. */
+  .entry-body h3 {
+    margin: 0 0 var(--space-2);
+    font-size: 1.05rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
   .entry-body h3 a { color: var(--text); }
   .entry-body h3 a:hover { color: var(--accent); }
+
   .entry-meta {
     margin: 0; display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: baseline;
     font-family: var(--font-sans); font-size: var(--step--1);
+    text-transform: uppercase; letter-spacing: 0.08em;
   }
   .when { color: var(--text-muted); }
   .soon { color: var(--brass); }
+
+  /* Mismo color que los capítulos bloqueados en la ficha de novela: que lo que
+     aún no se puede leer signifique lo mismo en las dos páginas. */
+  .entry-next {
+    margin: var(--space-2) 0 0;
+    font-family: var(--font-sans);
+    font-size: var(--step--1);
+    color: var(--warm);
+  }
+
+  @media (max-width: 600px) {
+    .plate.mini { width: 44px; }
+    .timeline { padding-left: var(--space-4); }
+    .node { left: calc(var(--space-4) * -1); }
+    .entry { gap: var(--space-3); }
+  }
 </style>
