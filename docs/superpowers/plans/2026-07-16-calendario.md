@@ -30,11 +30,16 @@ Spec: `docs/superpowers/specs/2026-07-16-formato-y-calendario-design.md` (Parte 
    `Nombre` (title), `Slug` (text), `Descripción` (text), `Orden` (number).
 2. En la BD de **Novelas**, crear: relación `Fase` (apunta a `Fases`), número
    `Orden en fase`, y texto `Ventana de lanzamiento`.
-3. **Pasarle al implementador el ID de la BD `Fases`.** Se saca de la URL de la
-   base en Notion: `notion.so/<workspace>/<ESTE_ES_EL_ID>?v=…`, y se escribe con
-   guiones (formato UUID), como los tres IDs que ya hay en
-   `scripts/notion-sync/notion.ts:7-9`. La Task 2 está bloqueada sin este dato:
-   **no lo inventes, pídelo.**
+3. **El ID de la BD `Fases`** ya está confirmado contra el Notion real:
+   `84921638-4c16-43b6-bf1f-4daa4e030ee5`. Ya viene escrito en la Task 2.
+
+**Estado verificado en Notion el 2026-07-17**: los tres prerrequisitos están
+hechos. La BD `Fases` existe con `Nombre`/`Slug`/`Descripción`/`Orden` (más una
+relación inversa `Historias` que el sync ignora), y Novelas tiene `Fase`,
+`Orden en fase` y `Ventana de lanzamiento`. Hay 3 fases y 15 historias, de las
+cuales 10 son anunciadas (sin capítulos) y tienen `Publicada` SIN marcar
+todavía: hasta que el autor las marque, el sync no las trae y el calendario
+solo muestra la primera fase. Es el estado esperado, no un fallo.
 
 ## File Structure
 
@@ -396,7 +401,7 @@ En `web/scripts/notion-sync/notion.ts`, añadir la constante junto a las otras
 tres (líneas 7-9), con el ID REAL que te dio Félix:
 
 ```ts
-const PHASES_DB = '<el ID que te pasó Félix, con guiones>';
+const PHASES_DB = '84921638-4c16-43b6-bf1f-4daa4e030ee5';
 ```
 
 Añadir al import de tipos `PhaseData` y al de transform `parsePhase`:
