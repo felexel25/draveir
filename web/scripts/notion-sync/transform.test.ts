@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  parseNovel, parseChapterMeta, chapterSlug, parseSaga, novelSlugOf, symmetrizeRelated,
+  parseNovel, parseChapterMeta, chapterSlug, parseSaga, parsePhase, novelSlugOf, symmetrizeRelated,
 } from './transform';
 import type { NotionPage, NovelData } from './types';
 
@@ -16,6 +16,7 @@ const novelPage: NotionPage = {
     'Etiquetas': { multi_select: [{ name: 'Magia' }] },
     'Destacada': { checkbox: true },
     'Publicada': { checkbox: true },
+    'Ventana de lanzamiento': { rich_text: [{ plain_text: 'Finales de 2027' }] },
   },
 };
 
@@ -49,6 +50,9 @@ describe('parseNovel', () => {
       featured: true,
       saga: null,
       sagaOrder: null,
+      phase: null,
+      phaseOrder: null,
+      releaseWindow: 'Finales de 2027',
       related: [],
     });
   });
@@ -176,7 +180,8 @@ describe('parseNovel con sagas', () => {
 describe('symmetrizeRelated', () => {
   const novel = (slug: string, related: string[]): NovelData => ({
     slug, title: slug, synopsis: '', status: null, format: null, categories: [], tags: [],
-    featured: false, saga: null, sagaOrder: null, related,
+    featured: false, saga: null, sagaOrder: null,
+    phase: null, phaseOrder: null, releaseWindow: null, related,
   });
 
   it('cierra la relación en el sentido que falta', () => {
@@ -199,5 +204,66 @@ describe('symmetrizeRelated', () => {
   it('ignora relaciones a novelas que no están en la lista', () => {
     const [a] = symmetrizeRelated([novel('a', ['inexistente'])]);
     expect(a.related).toEqual([]);
+  });
+});
+
+const phasePage: NotionPage = {
+  id: 'phase-1',
+  properties: {
+    'Nombre': { title: [{ plain_text: 'El despertar' }] },
+    'Slug': { rich_text: [{ plain_text: 'el-despertar' }] },
+    'Descripción': { rich_text: [{ plain_text: 'Donde todo empieza.' }] },
+    'Orden': { number: 1 },
+  },
+};
+
+describe('parsePhase', () => {
+  it('mapea todas las propiedades de una fase', () => {
+    expect(parsePhase(phasePage)).toEqual({
+      slug: 'el-despertar',
+      name: 'El despertar',
+      description: 'Donde todo empieza.',
+      order: 1,
+    });
+  });
+
+  it('deriva el slug del nombre si falta Slug', () => {
+    const noSlug: NotionPage = {
+      id: 'p',
+      properties: { ...phasePage.properties, 'Slug': { rich_text: [] } },
+    };
+    expect(parsePhase(noSlug).slug).toBe('el-despertar');
+  });
+});
+
+describe('parseNovel con fases', () => {
+  const phases = new Map([['phase-1', 'el-despertar']]);
+  const enFase: NotionPage = {
+    id: 'novel-3',
+    properties: {
+      ...novelPage.properties,
+      'Fase': { relation: [{ id: 'phase-1' }] },
+      'Orden en fase': { number: 2 },
+    },
+  };
+
+  it('resuelve la fase y su orden', () => {
+    const n = parseNovel(enFase, undefined, undefined, phases);
+    expect(n.phase).toBe('el-despertar');
+    expect(n.phaseOrder).toBe(2);
+  });
+
+  it('una novela sin fase sale con los campos vacíos', () => {
+    const n = parseNovel(novelPage, undefined, undefined, phases);
+    expect(n.phase).toBeNull();
+    expect(n.phaseOrder).toBeNull();
+  });
+
+  it('deja la ventana de lanzamiento en null si está vacía', () => {
+    const sinVentana: NotionPage = {
+      id: 'n',
+      properties: { ...novelPage.properties, 'Ventana de lanzamiento': { rich_text: [] } },
+    };
+    expect(parseNovel(sinVentana).releaseWindow).toBeNull();
   });
 });

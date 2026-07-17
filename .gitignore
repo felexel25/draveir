@@ -6,6 +6,7 @@ dist/
 
 # Contenido generado por el sync (build-time)
 web/src/content/sagas/
+web/src/content/phases/
 web/src/content/novels/
 web/src/content/chapters/
 web/src/content/lockedChapters/
