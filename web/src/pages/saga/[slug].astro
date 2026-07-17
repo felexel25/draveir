@@ -24,7 +24,7 @@ const { slug } = Astro.params;
 
 const novels = (await getCollection('novels')).filter((n) => n.data.saga === slug);
 const ordered = readingOrder(
-  novels.map((n) => ({ slug: n.data.slug, title: n.data.title, sagaOrder: n.data.sagaOrder })),
+  novels.map((n) => ({ slug: n.data.slug, title: n.data.title, order: n.data.sagaOrder })),
 );
 const bySlug = new Map(novels.map((n) => [n.data.slug, n.data]));
 ---
