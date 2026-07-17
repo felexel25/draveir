@@ -88,13 +88,17 @@ const sagaPosition = saga
         {novel.data.categories[0] && <span class="eyebrow">{novel.data.categories[0]}</span>}
         <h1>{novel.data.title}</h1>
         <p class="synopsis">{novel.data.synopsis}</p>
+        {(novel.data.format || totalMinutes > 0) && (
+          <div class="format-block">
+            {novel.data.format && (
+              <span class="format">
+                {novel.data.format}{subtitle && <span class="format-alt"> · {subtitle}</span>}
+              </span>
+            )}
+            {totalMinutes > 0 && <span class="format-time">≈ {formatMinutes(totalMinutes)} de lectura</span>}
+          </div>
+        )}
         <div class="meta">
-          {novel.data.format && (
-            <span class="format">
-              {novel.data.format}{subtitle && <span class="format-alt"> · {subtitle}</span>}
-              {totalMinutes > 0 && <span class="format-time"> · ≈ {formatMinutes(totalMinutes)} de lectura</span>}
-            </span>
-          )}
           {saga && (
             <a class="saga-line" href={`/saga/${saga.data.slug}`}>
               {sagaPosition && <span class="saga-pos">{sagaPosition}</span>}
@@ -167,7 +171,7 @@ const sagaPosition = saga
   .saga-line { display: inline-flex; align-items: center; gap: 0.4rem; color: var(--brass); text-decoration: none; }
   .saga-line:hover { text-decoration: underline; }
   .saga-pos { color: var(--text-muted); font-size: 0.85em; }
-  .format { font-family: var(--font-sans); font-size: var(--step--1); color: var(--text-muted); }
+  .format-block { margin-top: var(--space-2); }
+  .format, .format-time { display: block; font-family: var(--font-sans); font-size: var(--step--1); color: var(--text-muted); }
   .format-alt { font-style: italic; }
-  .format-time { color: var(--text-muted); }
 </style>

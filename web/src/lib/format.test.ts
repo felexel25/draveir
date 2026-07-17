@@ -17,6 +17,11 @@ describe('formatSubtitle', () => {
     expect(formatSubtitle(null)).toBeNull();
     expect(formatSubtitle('Novelón')).toBeNull();
   });
+
+  it('no se cuela una propiedad heredada de Object', () => {
+    expect(formatSubtitle('toString')).toBeNull();
+    expect(formatSubtitle('constructor')).toBeNull();
+  });
 });
 
 describe('formatMinutes', () => {
