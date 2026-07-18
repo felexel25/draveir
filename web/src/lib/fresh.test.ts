@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isFresh } from './fresh';
+import { isFresh, relativeDayLabel } from './fresh';
 
 const now = new Date('2026-07-17T12:00:00.000-05:00');
 
@@ -31,5 +31,24 @@ describe('isFresh', () => {
   it('respeta una ventana personalizada', () => {
     expect(isFresh('2026-07-11T12:00:00.000-05:00', now, 7)).toBe(true);
     expect(isFresh('2026-07-11T12:00:00.000-05:00', now, 3)).toBe(false);
+  });
+});
+
+describe('relativeDayLabel', () => {
+  it('mismo día de calendario en Panamá es "hoy"', () => {
+    expect(relativeDayLabel('2026-07-17T07:00:00.000-05:00', now)).toBe('hoy');
+  });
+
+  it('el día anterior es "ayer", aunque sean menos de 24h', () => {
+    // 16 jul 7 PM visto el 17 jul mediodía: 17h, pero es ayer de calendario.
+    expect(relativeDayLabel('2026-07-16T19:00:00.000-05:00', now)).toBe('ayer');
+  });
+
+  it('dos días atrás dice "hace 2 días"', () => {
+    expect(relativeDayLabel('2026-07-15T19:00:00.000-05:00', now)).toBe('hace 2 días');
+  });
+
+  it('una fecha ilegible da cadena vacía', () => {
+    expect(relativeDayLabel('mañana', now)).toBe('');
   });
 });

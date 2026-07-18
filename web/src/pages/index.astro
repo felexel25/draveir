@@ -6,7 +6,7 @@ import { coverGradient } from '../lib/covers';
 import { novelHaystack } from '../lib/search';
 import Emblem from '../components/Emblem.astro';
 import { getReadableNovels } from '../lib/novels';
-import { isFresh } from '../lib/fresh';
+import { isFresh, relativeDayLabel } from '../lib/fresh';
 
 const novels = (await getReadableNovels()).sort((a, b) =>
   a.data.title.localeCompare(b.data.title, 'es'),
@@ -28,6 +28,9 @@ const recent = chapters
       gradient: coverGradient(n.categories),
       title: c.data.title,
       chapterSlug: c.data.chapterSlug,
+      // Tiempo relativo ("hoy/ayer/hace N días") — un feed de novedades se lee
+      // como algo vivo; la fecha exacta va en el title para quien la quiera.
+      when: relativeDayLabel(c.data.publishedAt, now),
       date: new Date(c.data.publishedAt).toLocaleDateString('es', {
         day: 'numeric',
         month: 'short',
@@ -97,7 +100,7 @@ const readHref = firstChapter
                   <span class="fresh-title">{c.title}</span>
                   <span class="fresh-foot">
                     <span class="new-badge">Nuevo</span>
-                    <span class="fresh-date">{c.date}</span>
+                    <span class="fresh-date" title={c.date}>{c.when}</span>
                   </span>
                 </span>
               </a>
