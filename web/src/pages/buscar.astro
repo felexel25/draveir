@@ -50,7 +50,7 @@ const formats = ORDER.filter((f) => present.has(f));
 </BaseLayout>
 
 <style>
-  .wide { max-width: 72rem; }
+  /* .wide y .novel-grid vienen de global.css. */
   #search-input {
     width: 100%;
     padding: var(--space-3);
@@ -73,10 +73,6 @@ const formats = ORDER.filter((f) => present.has(f));
   .chip[aria-pressed='true'] { color: var(--text); border-color: var(--brass); }
   @media (prefers-reduced-motion: no-preference) {
     .chip { transition: color 0.15s ease, border-color 0.15s ease; }
-  }
-  .novel-grid {
-    list-style: none; padding: 0; display: grid; gap: var(--space-5);
-    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
   }
 </style>
 

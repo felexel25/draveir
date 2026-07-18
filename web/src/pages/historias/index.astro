@@ -8,9 +8,9 @@ const novels = (await getReadableNovels()).sort((a, b) =>
 );
 ---
 
-<BaseLayout title="Novelas — Draveir">
+<BaseLayout title="Historias — Draveir">
   <main class="container wide" id="contenido">
-    <h1>Novelas</h1>
+    <h1>Historias</h1>
     <ul class="novel-grid">
       {novels.map((n) => (
         <NovelCard
@@ -27,12 +27,5 @@ const novels = (await getReadableNovels()).sort((a, b) =>
 </BaseLayout>
 
 <style>
-  .wide { max-width: 72rem; }
-  .novel-grid {
-    list-style: none;
-    padding: 0;
-    display: grid;
-    gap: var(--space-5);
-    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
-  }
+  /* .wide y .novel-grid los pone global.css: mismo ancho y misma rejilla que el resto. */
 </style>

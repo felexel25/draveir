@@ -4,8 +4,10 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import Emblem from '../components/Emblem.astro';
 import { coverGradient } from '../lib/covers';
 import { releaseLabel, nextChapterLabel, romanNumeral } from '../lib/calendar';
+import { isFresh } from '../lib/fresh';
 import { getReadableNovels } from '../lib/novels';
 import { readingOrder } from '../lib/saga';
+import { slugify } from '../lib/slug';
 
 const novels = await getCollection('novels');
 const chapters = await getCollection('chapters');
@@ -31,15 +33,26 @@ for (const c of locked.filter((c) => c.data.number === 1)) {
 // que no existen.
 const readable = new Set((await getReadableNovels()).map((n) => n.data.slug));
 
-// El próximo capítulo de cada novela: el programado más cercano. Una historia
-// que ya salió entera no tiene ninguno, y no muestra esta línea.
+// El próximo capítulo de cada novela: el programado más cercano. El capítulo 1
+// NO cuenta — es el estreno, y ya lo anuncia la fecha de estreno (releaseLabel).
+// Contarlo mostraba "Cap. 1 · <fecha>" redundante con el estreno (y absurdo en
+// un relato de un solo capítulo). Una historia sin más capítulos no muestra
+// esta línea.
 const nextChapter = new Map<string, { number: number; at: string }>();
 for (const c of locked) {
+  if (c.data.number <= 1) continue;
   const prev = nextChapter.get(c.data.novelSlug);
   if (!prev || c.data.unlocksAt < prev.at) {
     nextChapter.set(c.data.novelSlug, { number: c.data.number, at: c.data.unlocksAt });
   }
 }
+
+// Historias con algún capítulo publicado hace menos de 3 días: llevan el badge
+// NUEVO. Frescura medida contra la hora del build.
+const now = new Date();
+const freshNovels = new Set(
+  chapters.filter((c) => isFresh(c.data.publishedAt, now)).map((c) => c.data.novelSlug),
+);
 
 const sections = phases
   .map((p) => {
@@ -58,6 +71,7 @@ const sections = phases
           status: n.status,
           categories: n.categories,
           readable: readable.has(n.slug),
+          isNew: freshNovels.has(n.slug),
           date: releaseLabel({
             firstChapterAt: firstChapterAt.get(n.slug) ?? null,
             releaseWindow: n.releaseWindow,
@@ -115,9 +129,10 @@ const sections = phases
                     : story.title}
                 </h3>
                 <p class="entry-meta">
+                  {story.isNew && <span class="new-badge">Nuevo</span>}
                   {story.date && <span class="when">{story.date}</span>}
                   {story.readable
-                    ? story.status && <span class="status">{story.status}</span>
+                    ? story.status && <a class="status" data-status={slugify(story.status)} href={`/estado/${slugify(story.status)}`}>{story.status}</a>
                     : <span class="soon">Próximamente</span>}
                 </p>
                 {story.next && <p class="entry-next">{story.next}</p>}
@@ -131,6 +146,8 @@ const sections = phases
 </BaseLayout>
 
 <style>
+  /* Columna de lectura estrecha (misma que la ficha de novela), no el ancho de
+     catálogo: el calendario se lee como una línea de tiempo, no como una rejilla. */
   .wide { max-width: 62rem; }
   .page-head { margin-bottom: var(--space-6); }
   .page-head h1 { margin: var(--space-1) 0 0; }

@@ -12,6 +12,7 @@
   --accent-strong: #b0c6f4;
   --brass: #c9a66b;
   --warm: #f0a83a;
+  --ok: #74c69a;
   --focus-ring: #8aa6e6;
   --shadow: 0 18px 40px -18px rgba(0, 0, 0, 0.7);
   --glow: color-mix(in srgb, var(--accent) 12%, transparent);
@@ -32,6 +33,7 @@
   --accent-strong: #26497f;
   --brass: #97742f;
   --warm: #b4740e;
+  --ok: #2f855a;
   --focus-ring: #395f9e;
   --shadow: 0 18px 38px -20px rgba(30, 45, 75, 0.3);
   --glow: color-mix(in srgb, var(--accent) 9%, transparent);
@@ -52,6 +54,7 @@
     --accent-strong: #26497f;
     --brass: #97742f;
     --warm: #b4740e;
+    --ok: #2f855a;
     --focus-ring: #395f9e;
     --shadow: 0 18px 38px -20px rgba(30, 45, 75, 0.3);
     --glow: color-mix(in srgb, var(--accent) 9%, transparent);

@@ -23,7 +23,7 @@ const readHref = firstChapter
   ? `/novela/${featured.data.slug}/${firstChapter.data.chapterSlug}`
   : featured
     ? `/novela/${featured.data.slug}`
-    : '/novelas';
+    : '/historias';
 ---
 
 <BaseLayout title="Draveir — Novelas">
@@ -42,7 +42,7 @@ const readHref = firstChapter
               <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
               Comenzar a leer
             </a>
-            <a class="btn btn-ghost" href="/novelas">Ver todas las novelas</a>
+            <a class="btn btn-ghost" href="/historias">Ver todas las historias</a>
           </div>
         </div>
         <a class="hero-cover" href={`/novela/${featured.data.slug}`} aria-hidden="true" tabindex="-1">

@@ -1,6 +1,8 @@
 ---
+import { getCollection } from 'astro:content';
 import { coverGradient } from '../lib/covers';
 import { slugify } from '../lib/slug';
+import { isFresh } from '../lib/fresh';
 import Emblem from './Emblem.astro';
 
 interface Props {
@@ -16,10 +18,17 @@ interface Props {
 const { slug, title, synopsis, status, format, categories, searchText } = Astro.props;
 const gradient = coverGradient(categories);
 const primaryCategory = categories[0];
+
+// ¿Tiene algún capítulo publicado hace menos de 3 días? La card lo sabe sola:
+// getCollection está memoizado en el build, así que preguntarlo por card es barato.
+const now = new Date();
+const isNew = (await getCollection('chapters')).some(
+  (c) => c.data.novelSlug === slug && isFresh(c.data.publishedAt, now),
+);
 ---
 
 <li class="novel-card" data-search={searchText} data-format={format ?? undefined}>
-  <a class="cover-link" href={`/novela/${slug}`} aria-label={title}>
+  <a class="cover-link" href={`/novela/${slug}`} aria-hidden="true" tabindex="-1">
     <span class="plate" style={`background:${gradient}`}>
       <span class="corner sigil" aria-hidden="true">✦</span>
       <Emblem slug={slug} />
@@ -30,8 +39,9 @@ const primaryCategory = categories[0];
     <h3><a href={`/novela/${slug}`}>{title}</a></h3>
     <p class="synopsis">{synopsis}</p>
     <div class="meta">
-      {status && <span class="status">{status}</span>}
-      {format && <span class="format">{format}</span>}
+      {isNew && <span class="new-badge">Nuevo</span>}
+      {status && <a class="status" data-status={slugify(status)} href={`/estado/${slugify(status)}`}>{status}</a>}
+      {format && <a class="format" href={`/formato/${slugify(format)}`}>{format}</a>}
       {categories.slice(0, 2).map((c) => (
         <a class="tag" href={`/categoria/${slugify(c)}`}>{c}</a>
       ))}
@@ -60,8 +70,16 @@ const primaryCategory = categories[0];
     overflow: hidden;
   }
   .meta { margin-top: auto; }
+  .meta .new-badge { margin-right: var(--space-2); }
+  /* Píldora de latón: distingue el formato del estado (píldora neutra) y de las
+     categorías, y enlaza a /formato/<slug>. */
   .format {
+    display: inline-block;
     font-family: var(--font-sans); font-size: var(--step--1);
-    color: var(--text-muted); margin-right: var(--space-2);
+    padding: 0.15rem 0.6rem; border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--brass) 45%, var(--border));
+    color: var(--brass);
+    margin-right: var(--space-2);
   }
+  a.format:hover { border-color: var(--brass); }
 </style>
