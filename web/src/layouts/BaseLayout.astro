@@ -69,13 +69,20 @@ const canonical = Astro.site ? new URL(Astro.url.pathname, Astro.site).href : As
       </svg>
     </button>
     <script is:inline>
-      // Aparece al bajar; vuelve arriba de un toque. Autónomo, sin imports.
+      // No debe estorbar la lectura: mientras lees (bajando) se esconde; solo
+      // aparece cuando SUBES (quieres volver) y ya bajaste un buen trecho.
+      // Autónomo, sin imports.
       (function () {
         var btn = document.getElementById('to-top');
         if (!btn) return;
-        var toggle = function () { btn.hidden = window.scrollY < 600; };
-        document.addEventListener('scroll', toggle, { passive: true });
-        toggle();
+        var lastY = window.scrollY;
+        var onScroll = function () {
+          var y = window.scrollY;
+          if (Math.abs(y - lastY) < 4) return; // ignora micro-movimientos
+          btn.hidden = !(y > 600 && y < lastY);
+          lastY = y;
+        };
+        document.addEventListener('scroll', onScroll, { passive: true });
         btn.addEventListener('click', function () {
           var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
           window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
@@ -101,9 +108,12 @@ const canonical = Astro.site ? new URL(Astro.url.pathname, Astro.site).href : As
     box-shadow: var(--shadow);
     cursor: pointer;
     z-index: 25;
+    /* Discreto para no competir con el texto; pleno al enfocarlo o pasar por él. */
+    opacity: 0.55;
   }
-  .to-top:hover { color: var(--brass); border-color: var(--brass); }
+  .to-top:hover,
+  .to-top:focus-visible { opacity: 1; color: var(--brass); border-color: var(--brass); }
   @media (prefers-reduced-motion: no-preference) {
-    .to-top { transition: color 0.15s ease, border-color 0.15s ease; }
+    .to-top { transition: opacity 0.15s ease, color 0.15s ease, border-color 0.15s ease; }
   }
 </style>
