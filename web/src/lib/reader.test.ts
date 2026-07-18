@@ -1,5 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { emptyState, parseState, isFavorite, toggleFavorite, recordRead } from './reader';
+import {
+  emptyState,
+  parseState,
+  isFavorite,
+  toggleFavorite,
+  recordRead,
+  setPosition,
+  getPosition,
+} from './reader';
 
 describe('parseState', () => {
   it('vacío para null o JSON inválido o versión distinta', () => {
@@ -8,8 +16,31 @@ describe('parseState', () => {
     expect(parseState(JSON.stringify({ version: 9 }))).toEqual(emptyState());
   });
   it('conserva un estado válido', () => {
-    const s = { version: 1, favorites: ['a'], continueReading: { a: 'capitulo-1' }, history: [] };
+    const s = {
+      version: 1,
+      favorites: ['a'],
+      continueReading: { a: 'capitulo-1' },
+      positions: { 'a/capitulo-1': 0.5 },
+      history: [],
+    };
     expect(parseState(JSON.stringify(s))).toEqual(s);
+  });
+  it('rellena positions si falta (estado viejo)', () => {
+    const viejo = JSON.stringify({ version: 1, favorites: [], continueReading: {}, history: [] });
+    expect(parseState(viejo).positions).toEqual({});
+  });
+});
+
+describe('positions', () => {
+  it('guarda, acota a 0..1 y lee la posición', () => {
+    let s = emptyState();
+    s = setPosition(s, 'a/capitulo-1', 0.42);
+    expect(getPosition(s, 'a/capitulo-1')).toBe(0.42);
+    s = setPosition(s, 'a/capitulo-1', 1.8);
+    expect(getPosition(s, 'a/capitulo-1')).toBe(1);
+  });
+  it('devuelve 0 si no hay posición guardada', () => {
+    expect(getPosition(emptyState(), 'x/y')).toBe(0);
   });
 });
 

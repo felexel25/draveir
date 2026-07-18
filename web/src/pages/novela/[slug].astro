@@ -179,11 +179,12 @@ const sagaPosition = saga
     const s = parseState(localStorage.getItem(READER_KEY));
     const ch = s.continueReading[slug];
     const btn = document.getElementById('continue-btn') as HTMLAnchorElement | null;
-    // Con progreso guardado, el botón "Comenzar a leer" pasa a "Continuar leyendo"
-    // apuntando al último capítulo leído. Sin JS o sin progreso, empieza en el 1.
+    // Con progreso guardado, el botón "Comenzar a leer" pasa a "Seguir leyendo"
+    // apuntando al último capítulo leído (que además restaura la posición de
+    // scroll al abrirlo). Sin JS o sin progreso, empieza en el capítulo 1.
     if (btn && ch) {
       btn.href = `/novela/${slug}/${ch}`;
-      btn.textContent = 'Continuar leyendo';
+      btn.textContent = 'Seguir leyendo';
     }
   </script>
 </BaseLayout>
