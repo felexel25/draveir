@@ -7,6 +7,7 @@ import { releaseLabel, nextChapterLabel, romanNumeral } from '../lib/calendar';
 import { isFresh } from '../lib/fresh';
 import { getReadableNovels } from '../lib/novels';
 import { readingOrder } from '../lib/saga';
+import { slugify } from '../lib/slug';
 
 const novels = await getCollection('novels');
 const chapters = await getCollection('chapters');
@@ -131,7 +132,7 @@ const sections = phases
                   {story.isNew && <span class="new-badge">Nuevo</span>}
                   {story.date && <span class="when">{story.date}</span>}
                   {story.readable
-                    ? story.status && <span class="status">{story.status}</span>
+                    ? story.status && <a class="status" data-status={slugify(story.status)} href={`/estado/${slugify(story.status)}`}>{story.status}</a>
                     : <span class="soon">Próximamente</span>}
                 </p>
                 {story.next && <p class="entry-next">{story.next}</p>}

@@ -2,14 +2,17 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import NovelCard from '../../components/NovelCard.astro';
 import Breadcrumb from '../../components/Breadcrumb.astro';
-import { collectTaxonomy } from '../../lib/taxonomy';
 import { slugify } from '../../lib/slug';
 import { getReadableNovels } from '../../lib/novels';
 
 export async function getStaticPaths() {
   const novels = await getReadableNovels();
-  const cats = collectTaxonomy(novels.map((n) => n.data), 'categories');
-  return cats.map((c) => ({ params: { slug: c.slug }, props: { name: c.name } }));
+  // Estados que existen de verdad en el catálogo; uno sin historias no genera página.
+  const states = new Map<string, string>();
+  for (const n of novels) {
+    if (n.data.status) states.set(slugify(n.data.status), n.data.status);
+  }
+  return [...states].map(([slug, name]) => ({ params: { slug }, props: { name } }));
 }
 
 interface Props { name: string; }
@@ -17,7 +20,7 @@ const { name } = Astro.props;
 const { slug } = Astro.params;
 
 const novels = (await getReadableNovels())
-  .filter((n) => n.data.categories.some((c) => slugify(c) === slug))
+  .filter((n) => n.data.status && slugify(n.data.status) === slug)
   .sort((a, b) => a.data.title.localeCompare(b.data.title, 'es'));
 ---
 
@@ -25,7 +28,7 @@ const novels = (await getReadableNovels())
   <main class="container wide" id="contenido">
     <Breadcrumb items={[{ label: 'Historias', href: '/historias' }, { label: name }]} />
     <div class="page-head">
-      <span class="eyebrow">Categoría</span>
+      <span class="eyebrow">Estado</span>
       <h1>{name}</h1>
     </div>
     <ul class="novel-grid">

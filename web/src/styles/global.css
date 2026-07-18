@@ -142,8 +142,13 @@ a:hover { color: var(--accent-strong); }
 .sec-head h2 { margin: 0; }
 .sec-head .count { font-family: var(--font-sans); font-size: var(--step--1); color: var(--text-muted); }
 
-/* ---- pills / tags ---- */
-.tag, .status {
+/* ---- pills / tags ----
+   Cada tipo de badge tiene su propia personalidad:
+   · categoría/etiqueta (.tag) → contorno neutro, la voz de fondo.
+   · formato (.format, en NovelCard) → contorno de latón.
+   · estado (.status) → relleno suave con color por valor.
+   · NUEVO (.new-badge) → latón sólido, el único que grita. */
+.tag {
   display: inline-block;
   font-family: var(--font-sans);
   font-size: var(--step--1);
@@ -155,6 +160,32 @@ a:hover { color: var(--accent-strong); }
   margin-right: var(--space-2);
 }
 a.tag:hover { border-color: var(--accent); color: var(--text); }
+
+/* Estado: píldora de relleno suave. El color dice el valor de un vistazo —
+   verde = terminada, azul = viva/en marcha. Neutro para cualquier otro. */
+.status {
+  display: inline-block;
+  font-family: var(--font-sans);
+  font-size: var(--step--1);
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: color-mix(in srgb, var(--text-muted) 14%, transparent);
+  color: var(--text-muted);
+  margin-right: var(--space-2);
+}
+.status[data-status='completa'] {
+  background: color-mix(in srgb, var(--ok) 15%, transparent);
+  color: var(--ok);
+}
+.status[data-status='en-progreso'] {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent-strong);
+}
+a.status:hover { filter: brightness(1.12); }
+@media (prefers-reduced-motion: no-preference) {
+  a.status { transition: filter 0.15s ease; }
+}
 
 /* Badge "NUEVO": pill latón sólido para capítulos recién publicados. Va en
    global (no scoped) para que aplique también al que inyecta el JS de desbloqueo

@@ -8,9 +8,9 @@ const novels = (await getReadableNovels()).sort((a, b) =>
 );
 ---
 
-<BaseLayout title="Novelas — Draveir">
+<BaseLayout title="Historias — Draveir">
   <main class="container wide" id="contenido">
-    <h1>Novelas</h1>
+    <h1>Historias</h1>
     <ul class="novel-grid">
       {novels.map((n) => (
         <NovelCard

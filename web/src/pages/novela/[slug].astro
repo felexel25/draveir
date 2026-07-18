@@ -19,7 +19,7 @@ export async function getStaticPaths() {
 
 const { slug } = Astro.params;
 const novel = await getEntry('novels', slug);
-if (!novel) return Astro.redirect('/novelas');
+if (!novel) return Astro.redirect('/historias');
 
 // Frescura de cada capítulo publicado, contra la hora del build.
 const now = new Date();
@@ -84,7 +84,7 @@ const sagaPosition = saga
     genre: novel.data.categories,
   })} />
   <main class="detail" id="contenido">
-    <Breadcrumb items={[{ label: 'Novelas', href: '/novelas' }, { label: novel.data.title }]} />
+    <Breadcrumb items={[{ label: 'Historias', href: '/historias' }, { label: novel.data.title }]} />
     <div class="novel-hero">
       <span class="plate" style={`background:${gradient}`} aria-hidden="true">
         <span class="corner sigil">✦</span>
@@ -111,7 +111,7 @@ const sagaPosition = saga
               Saga {saga.data.name}
             </a>
           )}
-          {novel.data.status && <span class="status">{novel.data.status}</span>}
+          {novel.data.status && <a class="status" data-status={slugify(novel.data.status)} href={`/estado/${slugify(novel.data.status)}`}>{novel.data.status}</a>}
           {novel.data.categories.map((c) => (
             <a class="tag" href={`/categoria/${slugify(c)}`}>{c}</a>
           ))}

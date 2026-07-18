@@ -40,7 +40,7 @@ const isNew = (await getCollection('chapters')).some(
     <p class="synopsis">{synopsis}</p>
     <div class="meta">
       {isNew && <span class="new-badge">Nuevo</span>}
-      {status && <span class="status">{status}</span>}
+      {status && <a class="status" data-status={slugify(status)} href={`/estado/${slugify(status)}`}>{status}</a>}
       {format && <a class="format" href={`/formato/${slugify(format)}`}>{format}</a>}
       {categories.slice(0, 2).map((c) => (
         <a class="tag" href={`/categoria/${slugify(c)}`}>{c}</a>

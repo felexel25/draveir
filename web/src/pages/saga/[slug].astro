@@ -32,7 +32,7 @@ const bySlug = new Map(novels.map((n) => [n.data.slug, n.data]));
 
 <BaseLayout title={`Saga ${name} — Draveir`} description={description}>
   <main class="container wide" id="contenido">
-    <Breadcrumb items={[{ label: 'Novelas', href: '/novelas' }, { label: name }]} />
+    <Breadcrumb items={[{ label: 'Historias', href: '/historias' }, { label: name }]} />
     <div class="page-head">
       <span class="eyebrow">Saga</span>
       <h1>{name}</h1>
