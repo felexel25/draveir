@@ -6,6 +6,7 @@ import Emblem from '../../components/Emblem.astro';
 import FavoriteButton from '../../components/FavoriteButton.astro';
 import { coverGradient } from '../../lib/covers';
 import { readingTime } from '../../lib/reading';
+import { isFresh } from '../../lib/fresh';
 import { formatSubtitle, formatMinutes } from '../../lib/format';
 import { slugify } from '../../lib/slug';
 import { readingOrder, positionIn } from '../../lib/saga';
@@ -20,6 +21,8 @@ const { slug } = Astro.params;
 const novel = await getEntry('novels', slug);
 if (!novel) return Astro.redirect('/novelas');
 
+// Frescura de cada capítulo publicado, contra la hora del build.
+const now = new Date();
 const published = (await getCollection('chapters')).filter((c) => c.data.novelSlug === slug);
 const locked = (await getCollection('lockedChapters')).filter((c) => c.data.novelSlug === slug);
 const chapters = [
@@ -30,6 +33,7 @@ const chapters = [
     locked: false,
     minutes: readingTime(c.body),
     unlocksAt: '',
+    isNew: isFresh(c.data.publishedAt, now),
   })),
   ...locked.map((c) => ({
     number: c.data.number,
@@ -38,6 +42,7 @@ const chapters = [
     locked: true,
     minutes: 0,
     unlocksAt: c.data.unlocksAt,
+    isNew: false,
   })),
 ].sort((a, b) => a.number - b.number);
 
@@ -123,7 +128,7 @@ const sagaPosition = saga
       {chapters.map((c) => (
         <li>
           <a href={`/novela/${slug}/${c.chapterSlug}`} class={c.locked ? 'locked' : ''} data-unlocks={c.locked ? c.unlocksAt : undefined}>
-            <span>{c.locked && <span class="lock" aria-hidden="true">✦</span>}{c.title}</span>
+            <span>{c.locked && <span class="lock" aria-hidden="true">✦</span>}{c.title}{c.isNew && <span class="new-badge">Nuevo</span>}</span>
             <span class="ch-time">{c.locked ? `Se abre el ${dateFmt(c.unlocksAt)}` : `~${c.minutes} min`}</span>
           </a>
         </li>
@@ -140,6 +145,15 @@ const sagaPosition = saga
       if (!Number.isNaN(at) && Date.now() >= at) {
         a.classList.remove('locked');
         a.querySelector('.lock')?.remove();
+        // Recién abierto: es nuevo. Mismo badge que hornea el build; el próximo
+        // rebuild lo sustituye por la versión estática con su tiempo de lectura.
+        const title = a.querySelector('span');
+        if (title && !title.querySelector('.new-badge')) {
+          const badge = document.createElement('span');
+          badge.className = 'new-badge';
+          badge.textContent = 'Nuevo';
+          title.appendChild(badge);
+        }
         const t = a.querySelector('.ch-time');
         if (t) t.textContent = 'Disponible';
       }

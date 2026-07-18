@@ -1,6 +1,8 @@
 ---
+import { getCollection } from 'astro:content';
 import { coverGradient } from '../lib/covers';
 import { slugify } from '../lib/slug';
+import { isFresh } from '../lib/fresh';
 import Emblem from './Emblem.astro';
 
 interface Props {
@@ -16,6 +18,13 @@ interface Props {
 const { slug, title, synopsis, status, format, categories, searchText } = Astro.props;
 const gradient = coverGradient(categories);
 const primaryCategory = categories[0];
+
+// ¿Tiene algún capítulo publicado hace menos de 3 días? La card lo sabe sola:
+// getCollection está memoizado en el build, así que preguntarlo por card es barato.
+const now = new Date();
+const isNew = (await getCollection('chapters')).some(
+  (c) => c.data.novelSlug === slug && isFresh(c.data.publishedAt, now),
+);
 ---
 
 <li class="novel-card" data-search={searchText} data-format={format ?? undefined}>
@@ -30,6 +39,7 @@ const primaryCategory = categories[0];
     <h3><a href={`/novela/${slug}`}>{title}</a></h3>
     <p class="synopsis">{synopsis}</p>
     <div class="meta">
+      {isNew && <span class="new-badge">Nuevo</span>}
       {status && <span class="status">{status}</span>}
       {format && <span class="format">{format}</span>}
       {categories.slice(0, 2).map((c) => (
@@ -60,6 +70,7 @@ const primaryCategory = categories[0];
     overflow: hidden;
   }
   .meta { margin-top: auto; }
+  .meta .new-badge { margin-right: var(--space-2); }
   .format {
     font-family: var(--font-sans); font-size: var(--step--1);
     color: var(--text-muted); margin-right: var(--space-2);
