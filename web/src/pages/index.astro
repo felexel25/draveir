@@ -16,21 +16,25 @@ const chapters = await getCollection('chapters');
 // Recién salido: los capítulos publicados hace menos de 3 días, del más nuevo al
 // menos. Si no hay ninguno, la sección no aparece (nada que anunciar).
 const now = new Date();
-const novelTitle = new Map(novels.map((n) => [n.data.slug, n.data.title]));
+const novelBySlug = new Map(novels.map((n) => [n.data.slug, n.data]));
 const recent = chapters
-  .filter((c) => isFresh(c.data.publishedAt, now) && novelTitle.has(c.data.novelSlug))
+  .filter((c) => isFresh(c.data.publishedAt, now) && novelBySlug.has(c.data.novelSlug))
   .sort((a, b) => b.data.publishedAt.localeCompare(a.data.publishedAt))
-  .map((c) => ({
-    novelSlug: c.data.novelSlug,
-    novelTitle: novelTitle.get(c.data.novelSlug)!,
-    title: c.data.title,
-    chapterSlug: c.data.chapterSlug,
-    date: new Date(c.data.publishedAt).toLocaleDateString('es', {
-      day: 'numeric',
-      month: 'short',
-      timeZone: 'America/Panama',
-    }),
-  }));
+  .map((c) => {
+    const n = novelBySlug.get(c.data.novelSlug)!;
+    return {
+      novelSlug: n.slug,
+      novelTitle: n.title,
+      gradient: coverGradient(n.categories),
+      title: c.data.title,
+      chapterSlug: c.data.chapterSlug,
+      date: new Date(c.data.publishedAt).toLocaleDateString('es', {
+        day: 'numeric',
+        month: 'short',
+        timeZone: 'America/Panama',
+      }),
+    };
+  });
 
 const featured = novels.find((n) => n.data.featured) ?? novels[0];
 const featuredGradient = featured ? coverGradient(featured.data.categories) : '';
@@ -81,15 +85,21 @@ const readHref = firstChapter
           <h2>Recién salido</h2>
           <span class="count">{recent.length} {recent.length === 1 ? 'capítulo' : 'capítulos'}</span>
         </div>
-        <ul class="fresh-list">
+        <ul class="fresh-grid">
           {recent.map((c) => (
             <li>
-              <a href={`/novela/${c.novelSlug}/${c.chapterSlug}`}>
+              <a class="fresh-card" href={`/novela/${c.novelSlug}/${c.chapterSlug}`}>
+                <span class="plate fresh-plate" style={`background:${c.gradient}`} aria-hidden="true">
+                  <Emblem slug={c.novelSlug} />
+                </span>
                 <span class="fresh-copy">
                   <span class="fresh-novel">{c.novelTitle}</span>
-                  <span class="fresh-title">{c.title}<span class="new-badge">Nuevo</span></span>
+                  <span class="fresh-title">{c.title}</span>
+                  <span class="fresh-foot">
+                    <span class="new-badge">Nuevo</span>
+                    <span class="fresh-date">{c.date}</span>
+                  </span>
                 </span>
-                <span class="fresh-date">{c.date}</span>
               </a>
             </li>
           ))}
@@ -138,30 +148,35 @@ const readHref = firstChapter
 
   .library { padding: var(--space-3) 0 var(--space-6); }
 
-  .fresh-out { padding: var(--space-3) 0; }
-  .fresh-list { list-style: none; margin: 0; padding: 0; }
-  .fresh-list li { border-top: 1px solid var(--border); }
-  .fresh-list li:last-child { border-bottom: 1px solid var(--border); }
-  .fresh-list a {
-    display: flex; align-items: center; justify-content: space-between;
-    gap: var(--space-4); padding: var(--space-3) 0;
+  .fresh-out { padding: var(--space-3) 0 var(--space-4); }
+  .fresh-grid {
+    list-style: none; margin: 0; padding: 0;
+    display: grid; gap: var(--space-4);
+    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
   }
-  .fresh-copy { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
+  .fresh-card {
+    display: flex; gap: var(--space-4); align-items: center; height: 100%;
+    padding: var(--space-3);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--surface);
+  }
+  /* Carátula pequeña, sin la sombra grande del .plate normal. */
+  .fresh-card .fresh-plate { width: 64px; flex: none; aspect-ratio: 2 / 3; box-shadow: none; }
+  .fresh-copy { display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; }
   .fresh-novel {
     font-family: var(--font-sans); font-size: var(--step--1);
     text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted);
   }
   .fresh-title {
-    font-family: var(--font-display); font-size: 1.25rem; color: var(--text);
-    display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;
+    font-family: var(--font-display); font-size: 1.2rem; line-height: 1.15; color: var(--text);
   }
-  .fresh-list a:hover .fresh-title { color: var(--accent); }
-  .fresh-date {
-    font-family: var(--font-sans); font-size: var(--step--1);
-    color: var(--text-muted); white-space: nowrap;
-  }
+  .fresh-foot { display: flex; align-items: center; gap: 0.7rem; margin-top: 0.15rem; }
+  .fresh-date { font-family: var(--font-sans); font-size: var(--step--1); color: var(--text-muted); }
+  /* Latón al pasar por encima: es lo recién salido, lo "caliente". */
+  .fresh-card:hover { border-color: var(--brass); }
+  .fresh-card:hover .fresh-title { color: var(--accent); }
   @media (prefers-reduced-motion: no-preference) {
-    .fresh-title { transition: color 0.15s ease; }
+    .fresh-card, .fresh-title { transition: border-color 0.15s ease, color 0.15s ease; }
   }
 
   @media (max-width: 860px) {
