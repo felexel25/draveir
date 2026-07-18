@@ -89,32 +89,53 @@ const isLastPublished =
       title: `${novelTitle} · ${title}`,
     })};`}></script>
   )}
-  {props.kind === 'published' && (
-    <Fragment>
-      <script is:inline>
-        (function () {
-          var bar = document.getElementById('reading-progress');
-          var article = document.querySelector('.reading article');
-          if (!bar || !article) return;
-          function update() {
-            var rect = article.getBoundingClientRect();
-            var total = rect.height - window.innerHeight;
-            var scrolled = Math.min(Math.max(-rect.top, 0), total);
-            bar.style.width = (total > 0 ? (scrolled / total) * 100 : 0) + '%';
-          }
-          document.addEventListener('scroll', update, { passive: true });
-          window.addEventListener('resize', update);
-          update();
-        })();
-      </script>
-      <script>
-        import { parseState, recordRead, READER_KEY } from '../../../lib/reader';
-        const c = (window as any).__chapter;
-        if (c) {
-          const s = recordRead(parseState(localStorage.getItem(READER_KEY)), { ...c, at: Date.now() });
-          localStorage.setItem(READER_KEY, JSON.stringify(s));
-        }
-      </script>
-    </Fragment>
-  )}
+  {/* A NIVEL SUPERIOR, no dentro de un condicional: si va anidado en
+     {cond && <Fragment>}, Astro no lo empaqueta y el progreso nunca se guarda.
+     Se auto-desactiva en capítulos bloqueados (ahí no existe window.__chapter). */}
+  <script>
+    import { parseState, recordRead, setPosition, getPosition, READER_KEY } from '../../../lib/reader';
+
+    const c = (window as any).__chapter as
+      | { novelSlug: string; chapterSlug: string; title: string }
+      | undefined;
+    if (c) {
+      const key = `${c.novelSlug}/${c.chapterSlug}`;
+
+      // Abrir el capítulo ya cuenta como leído y como "seguir leyendo".
+      const opened = recordRead(parseState(localStorage.getItem(READER_KEY)), { ...c, at: Date.now() });
+      localStorage.setItem(READER_KEY, JSON.stringify(opened));
+
+      const bar = document.getElementById('reading-progress');
+      const scrollMax = () => Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+
+      // Volver justo donde se quedó (si hay posición guardada).
+      const saved = getPosition(opened, key);
+      if (saved > 0) {
+        requestAnimationFrame(() => window.scrollTo(0, saved * scrollMax()));
+      }
+
+      const paintBar = () => {
+        const frac = Math.min(1, Math.max(0, window.scrollY / scrollMax()));
+        if (bar) bar.style.width = frac * 100 + '%';
+        return frac;
+      };
+
+      // Guardar la posición sin castigar el scroll: un respiro tras parar.
+      let t = 0;
+      document.addEventListener(
+        'scroll',
+        () => {
+          const frac = paintBar();
+          clearTimeout(t);
+          t = window.setTimeout(() => {
+            const next = setPosition(parseState(localStorage.getItem(READER_KEY)), key, frac);
+            localStorage.setItem(READER_KEY, JSON.stringify(next));
+          }, 400);
+        },
+        { passive: true },
+      );
+      window.addEventListener('resize', paintBar);
+      paintBar();
+    }
+  </script>
 </BaseLayout>
