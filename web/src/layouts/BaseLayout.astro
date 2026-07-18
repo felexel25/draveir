@@ -63,5 +63,47 @@ const canonical = Astro.site ? new URL(Astro.url.pathname, Astro.site).href : As
     <Header />
     <slot />
     <Footer />
+    <button id="to-top" class="to-top" type="button" aria-label="Volver arriba" hidden>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M12 19V5" /><path d="M5 12l7-7 7 7" />
+      </svg>
+    </button>
+    <script is:inline>
+      // Aparece al bajar; vuelve arriba de un toque. Autónomo, sin imports.
+      (function () {
+        var btn = document.getElementById('to-top');
+        if (!btn) return;
+        var toggle = function () { btn.hidden = window.scrollY < 600; };
+        document.addEventListener('scroll', toggle, { passive: true });
+        toggle();
+        btn.addEventListener('click', function () {
+          var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+          window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
+        });
+      })();
+    </script>
   </body>
 </html>
+
+<style>
+  .to-top {
+    position: fixed;
+    right: var(--space-4);
+    bottom: var(--space-4);
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    background: var(--surface);
+    color: var(--text-muted);
+    border: 1px solid var(--line-bright);
+    border-radius: 999px;
+    box-shadow: var(--shadow);
+    cursor: pointer;
+    z-index: 25;
+  }
+  .to-top:hover { color: var(--brass); border-color: var(--brass); }
+  @media (prefers-reduced-motion: no-preference) {
+    .to-top { transition: color 0.15s ease, border-color 0.15s ease; }
+  }
+</style>
