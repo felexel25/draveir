@@ -39,7 +39,10 @@ const formats = ORDER.filter((f) => countByFormat.has(f));
       aria-label="Buscar novelas"
       autocomplete="off"
     />
-    <p id="search-empty" class="search-empty" hidden>Sin resultados.</p>
+    <p id="search-empty" class="search-empty" hidden>
+      No hay historias que coincidan.
+      <button type="button" id="search-clear" class="search-clear">Limpiar filtros</button>
+    </p>
     <ul class="novel-grid" id="search-results">
       {novels.map((n) => (
         <NovelCard
@@ -70,6 +73,11 @@ const formats = ORDER.filter((f) => countByFormat.has(f));
     font-size: var(--step-0);
   }
   .search-empty { color: var(--text-muted); font-family: var(--font-sans); }
+  .search-clear {
+    font: inherit; color: var(--accent); background: none; border: 0;
+    padding: 0; cursor: pointer; text-decoration: underline;
+  }
+  .search-clear:hover { color: var(--accent-strong); }
   .chips { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-3); }
   .chip {
     font-family: var(--font-sans); font-size: var(--step--1); color: var(--text-muted);
@@ -118,4 +126,14 @@ const formats = ORDER.filter((f) => countByFormat.has(f));
       apply();
     });
   }
+
+  // Salida del callejón sin salida: limpiar texto y formato de un toque.
+  const clearBtn = document.getElementById('search-clear');
+  clearBtn?.addEventListener('click', () => {
+    if (input) input.value = '';
+    activeFormat = null;
+    for (const c of chips) c.setAttribute('aria-pressed', 'false');
+    apply();
+    input?.focus();
+  });
 </script>
