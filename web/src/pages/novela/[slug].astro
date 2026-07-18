@@ -49,6 +49,13 @@ const chapters = [
 // Solo los capítulos publicados: el texto de los bloqueados no está en el repo,
 // así que se anuncia lo que hoy se puede leer, no un total imaginario.
 const totalMinutes = published.length ? readingTime(published.map((c) => c.body).join(' ')) : 0;
+
+// El primer capítulo publicado: destino de "Iniciar lectura". Si no hay ninguno
+// publicado, no hay nada que iniciar y el botón no se muestra.
+const firstReadable = [...published].sort((a, b) => a.data.number - b.data.number)[0];
+const startHref = firstReadable
+  ? `/novela/${slug}/${firstReadable.data.chapterSlug}`
+  : null;
 const subtitle = formatSubtitle(novel.data.format);
 
 const dateFmt = (iso: string) =>
@@ -120,7 +127,9 @@ const sagaPosition = saga
           ))}
         </div>
         <div class="detail-actions">
-          <a class="btn btn-primary" id="continue-btn" href="#" hidden>Continuar leyendo</a>
+          {startHref && (
+            <a class="btn btn-primary" id="continue-btn" href={startHref}>Iniciar lectura</a>
+          )}
           <FavoriteButton slug={novel.data.slug} />
         </div>
       </div>
@@ -170,9 +179,11 @@ const sagaPosition = saga
     const s = parseState(localStorage.getItem(READER_KEY));
     const ch = s.continueReading[slug];
     const btn = document.getElementById('continue-btn') as HTMLAnchorElement | null;
+    // Con progreso guardado, el botón "Iniciar lectura" pasa a "Continuar leyendo"
+    // apuntando al último capítulo leído. Sin JS o sin progreso, inicia en el 1.
     if (btn && ch) {
       btn.href = `/novela/${slug}/${ch}`;
-      btn.hidden = false;
+      btn.textContent = 'Continuar leyendo';
     }
   </script>
 </BaseLayout>
