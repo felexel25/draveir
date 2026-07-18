@@ -71,8 +71,13 @@ const isNew = (await getCollection('chapters')).some(
   }
   .meta { margin-top: auto; }
   .meta .new-badge { margin-right: var(--space-2); }
+  /* Píldora como .status/.tag: si no, el formato era texto pelado entre píldoras
+     y se veía desalineado. */
   .format {
+    display: inline-block;
     font-family: var(--font-sans); font-size: var(--step--1);
-    color: var(--text-muted); margin-right: var(--space-2);
+    padding: 0.15rem 0.6rem; border-radius: 999px;
+    border: 1px solid var(--border); color: var(--text-muted);
+    margin-right: var(--space-2);
   }
 </style>
