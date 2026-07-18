@@ -9,30 +9,38 @@ interface Props {
 const { items } = Astro.props;
 ---
 <nav class="breadcrumb" aria-label="Ruta de navegación">
-  {items.map((c, i) => (
-    <Fragment>
-      {i > 0 && <span class="sep" aria-hidden="true">✦</span>}
-      {c.href && i < items.length - 1 ? (
-        <a href={c.href}>{c.label}</a>
-      ) : (
-        <span class="current" aria-current="page">{c.label}</span>
-      )}
-    </Fragment>
-  ))}
+  <ol>
+    {items.map((c, i) => (
+      <li>
+        {i > 0 && <span class="sep" aria-hidden="true">✦</span>}
+        {c.href && i < items.length - 1 ? (
+          <a href={c.href}>{c.label}</a>
+        ) : (
+          <span class="current" aria-current="page">{c.label}</span>
+        )}
+      </li>
+    ))}
+  </ol>
 </nav>
 
 <style>
   .breadcrumb {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 0.6rem;
     font-family: var(--font-sans);
     font-size: 0.82rem;
     letter-spacing: 0.01em;
     color: var(--text-muted);
     margin-bottom: var(--space-5);
   }
+  .breadcrumb ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+  .breadcrumb li { display: flex; align-items: center; gap: 0.6rem; }
   .breadcrumb a { color: var(--text-muted); }
   .breadcrumb a:hover { color: var(--accent); }
   .breadcrumb .current { color: var(--text); }
