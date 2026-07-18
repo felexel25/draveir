@@ -115,6 +115,9 @@ const sagaPosition = saga
           {novel.data.categories.map((c) => (
             <a class="tag" href={`/categoria/${slugify(c)}`}>{c}</a>
           ))}
+          {novel.data.tags.map((t) => (
+            <a class="etiqueta" href={`/etiqueta/${slugify(t)}`}>{t}</a>
+          ))}
         </div>
         <div class="detail-actions">
           <a class="btn btn-primary" id="continue-btn" href="#" hidden>Continuar leyendo</a>

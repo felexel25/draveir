@@ -144,7 +144,8 @@ a:hover { color: var(--accent-strong); }
 
 /* ---- pills / tags ----
    Cada tipo de badge tiene su propia personalidad:
-   · categoría/etiqueta (.tag) → contorno neutro, la voz de fondo.
+   · categoría (.tag) → contorno azul acento, el "género".
+   · etiqueta (.etiqueta) → texto tenue con #, la voz más baja.
    · formato (.format, en NovelCard) → contorno de latón.
    · estado (.status) → relleno suave con color por valor.
    · NUEVO (.new-badge) → latón sólido, el único que grita. */
@@ -154,12 +155,23 @@ a:hover { color: var(--accent-strong); }
   font-size: var(--step--1);
   padding: 0.15rem 0.6rem;
   border-radius: 999px;
-  border: 1px solid var(--border);
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
   background: transparent;
+  color: var(--accent);
+  margin-right: var(--space-2);
+}
+a.tag:hover { border-color: var(--accent); color: var(--accent-strong); }
+
+/* Etiqueta: la voz más tenue, sin píldora, con # delante. Enlaza a /etiqueta. */
+.etiqueta {
+  display: inline-block;
+  font-family: var(--font-sans);
+  font-size: var(--step--1);
   color: var(--text-muted);
   margin-right: var(--space-2);
 }
-a.tag:hover { border-color: var(--accent); color: var(--text); }
+.etiqueta::before { content: '#'; opacity: 0.55; }
+a.etiqueta:hover { color: var(--text); }
 
 /* Estado: píldora de relleno suave. El color dice el valor de un vistazo —
    verde = terminada, azul = viva/en marcha. Neutro para cualquier otro. */
