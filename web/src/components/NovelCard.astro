@@ -41,7 +41,7 @@ const isNew = (await getCollection('chapters')).some(
     <div class="meta">
       {isNew && <span class="new-badge">Nuevo</span>}
       {status && <span class="status">{status}</span>}
-      {format && <span class="format">{format}</span>}
+      {format && <a class="format" href={`/formato/${slugify(format)}`}>{format}</a>}
       {categories.slice(0, 2).map((c) => (
         <a class="tag" href={`/categoria/${slugify(c)}`}>{c}</a>
       ))}
@@ -71,13 +71,15 @@ const isNew = (await getCollection('chapters')).some(
   }
   .meta { margin-top: auto; }
   .meta .new-badge { margin-right: var(--space-2); }
-  /* Píldora como .status/.tag: si no, el formato era texto pelado entre píldoras
-     y se veía desalineado. */
+  /* Píldora de latón: distingue el formato del estado (píldora neutra) y de las
+     categorías, y enlaza a /formato/<slug>. */
   .format {
     display: inline-block;
     font-family: var(--font-sans); font-size: var(--step--1);
     padding: 0.15rem 0.6rem; border-radius: 999px;
-    border: 1px solid var(--border); color: var(--text-muted);
+    border: 1px solid color-mix(in srgb, var(--brass) 45%, var(--border));
+    color: var(--brass);
     margin-right: var(--space-2);
   }
+  a.format:hover { border-color: var(--brass); }
 </style>
