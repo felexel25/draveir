@@ -28,7 +28,7 @@ const isNew = (await getCollection('chapters')).some(
 ---
 
 <li class="novel-card" data-search={searchText} data-format={format ?? undefined}>
-  <a class="cover-link" href={`/novela/${slug}`} aria-label={title}>
+  <a class="cover-link" href={`/novela/${slug}`} aria-hidden="true" tabindex="-1">
     <span class="plate" style={`background:${gradient}`}>
       <span class="corner sigil" aria-hidden="true">✦</span>
       <Emblem slug={slug} />

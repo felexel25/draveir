@@ -89,6 +89,8 @@ a:hover { color: var(--accent-strong); }
   content: '';
   position: absolute;
   inset: 8px;
+  /* Latón fijo, no var(--brass): la carátula es siempre oscura, también en tema
+     claro, igual que .emblem. Con el token, el filete se oscurecería en claro. */
   border: 1px solid rgba(201, 166, 107, 0.3);
   border-radius: 5px;
   pointer-events: none;
@@ -171,7 +173,9 @@ a.tag:hover { border-color: var(--accent); color: var(--text); }
   color: var(--bg);
 }
 @media (prefers-reduced-motion: no-preference) {
-  .new-badge { animation: new-pulse 1.6s ease-in-out infinite; }
+  /* Tres latidos para llamar la atención, luego se asienta (el keyframe termina
+     en opacity 1). No parpadea para siempre: WCAG 2.2.2 y menos ruido visual. */
+  .new-badge { animation: new-pulse 1.6s ease-in-out 3; }
 }
 @keyframes new-pulse {
   0%, 100% { opacity: 1; }
