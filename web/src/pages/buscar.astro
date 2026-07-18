@@ -9,10 +9,15 @@ const novels = (await getReadableNovels()).sort((a, b) =>
 );
 
 // Solo los formatos que existen en el catálogo: un chip que no filtra nada es
-// una promesa vacía. El orden es el de la taxonomía, de menor a mayor.
+// una promesa vacía. El orden es el de la taxonomía, de menor a mayor. El conteo
+// va en el propio chip para que no se elija un formato que da "0 resultados".
 const ORDER = ['Microrrelato', 'Relato', 'Relato largo', 'Novela corta', 'Novela'];
-const present = new Set(novels.map((n) => n.data.format).filter(Boolean) as string[]);
-const formats = ORDER.filter((f) => present.has(f));
+const countByFormat = new Map<string, number>();
+for (const n of novels) {
+  const f = n.data.format;
+  if (f) countByFormat.set(f, (countByFormat.get(f) ?? 0) + 1);
+}
+const formats = ORDER.filter((f) => countByFormat.has(f));
 ---
 
 <BaseLayout title="Buscar — Draveir" noindex>
@@ -21,7 +26,9 @@ const formats = ORDER.filter((f) => present.has(f));
     {formats.length > 0 && (
       <div class="chips" role="group" aria-label="Filtrar por formato">
         {formats.map((f) => (
-          <button type="button" class="chip" data-chip={f} aria-pressed="false">{f}</button>
+          <button type="button" class="chip" data-chip={f} aria-pressed="false">
+            {f} <span class="chip-count">{countByFormat.get(f)}</span>
+          </button>
         ))}
       </div>
     )}
@@ -71,6 +78,7 @@ const formats = ORDER.filter((f) => present.has(f));
   }
   .chip:hover { color: var(--text); border-color: var(--accent); }
   .chip[aria-pressed='true'] { color: var(--text); border-color: var(--brass); }
+  .chip-count { opacity: 0.6; font-variant-numeric: tabular-nums; }
   @media (prefers-reduced-motion: no-preference) {
     .chip { transition: color 0.15s ease, border-color 0.15s ease; }
   }
