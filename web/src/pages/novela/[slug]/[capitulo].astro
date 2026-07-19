@@ -89,6 +89,15 @@ const isLastPublished =
       title: `${novelTitle} · ${title}`,
     })};`}></script>
   )}
+  {/* ponytail: corta clic derecho y copia sobre el texto del capítulo. Casual, no DRM. */}
+  {props.kind === 'published' && (
+    <script is:inline>
+      {`document.querySelectorAll('.reading article').forEach((a) => {
+        a.addEventListener('contextmenu', (e) => e.preventDefault());
+        a.addEventListener('copy', (e) => e.preventDefault());
+      });`}
+    </script>
+  )}
   {/* A NIVEL SUPERIOR, no dentro de un condicional: si va anidado en
      {cond && <Fragment>}, Astro no lo empaqueta y el progreso nunca se guarda.
      Se auto-desactiva en capítulos bloqueados (ahí no existe window.__chapter). */}
