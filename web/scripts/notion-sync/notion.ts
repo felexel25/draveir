@@ -88,6 +88,14 @@ export async function fetchChapters(
     if (!meta) continue; // capítulo de una novela no publicada → se omite
     const estado = page.properties['Estado']?.select?.name ?? '';
     const unlocked = estado === 'Publicado' || isUnlocked(meta.publishedAt, now);
+    // Ya salió en la web por fecha pero Notion sigue en "Programado": lo alineamos.
+    // Idempotente: al correr de nuevo ya está "Publicado" y no vuelve a escribir.
+    if (unlocked && estado === 'Programado') {
+      await notion.pages.update({
+        page_id: page.id,
+        properties: { Estado: { select: { name: 'Publicado' } } },
+      });
+    }
     const blocks = await n2m.pageToMarkdown(page.id);
     const bodyMarkdown = n2m.toMarkdownString(blocks).parent ?? '';
     chapters.push({ ...meta, bodyMarkdown, unlocked });
