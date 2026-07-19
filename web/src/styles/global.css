@@ -248,7 +248,15 @@ a.status:hover { filter: brightness(1.12); }
 }
 .reading-top { margin-bottom: var(--space-5); }
 .chapter-foot { margin-top: var(--space-6); padding-top: var(--space-4); border-top: 1px solid var(--border); }
-.reading article { font-size: var(--step-0); line-height: 1.85; }
+/* ponytail: imágenes no arrastrables (evita arrastrar a escritorio/pestaña). */
+img { -webkit-user-drag: none; user-select: none; }
+
+.reading article {
+  font-size: var(--step-0); line-height: 1.85;
+  /* ponytail: protección "buena fe" estilo webnovel — frena selección/copia
+     casual. Saltable con DevTools; no es DRM. */
+  -webkit-user-select: none; user-select: none;
+}
 .reading article p { margin: 0 0 var(--space-4); text-wrap: pretty; }
 .reading article blockquote {
   margin: var(--space-4) 0; padding-left: var(--space-3);

@@ -45,6 +45,13 @@ const canonical = Astro.site ? new URL(Astro.url.pathname, Astro.site).href : As
     <meta name="twitter:card" content="summary" />
     <slot name="head" />
     <script is:inline>
+      // ponytail: corta clic derecho sobre cualquier imagen (Guardar imagen como).
+      // Casual, no DRM: DevTools y la URL directa siguen sirviendo la imagen.
+      document.addEventListener('contextmenu', function (e) {
+        if (e.target instanceof HTMLImageElement) e.preventDefault();
+      });
+    </script>
+    <script is:inline>
       // Anti-FOUC: fija el tema antes del primer pintado.
       (function () {
         try {
