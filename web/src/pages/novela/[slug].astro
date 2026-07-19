@@ -141,7 +141,7 @@ const sagaPosition = saga
         <li>
           <a href={`/novela/${slug}/${c.chapterSlug}`} class={c.locked ? 'locked' : ''} data-unlocks={c.locked ? c.unlocksAt : undefined}>
             <span>{c.locked && <span class="lock" aria-hidden="true">✦</span>}{c.title}{c.isNew && <span class="new-badge">Nuevo</span>}</span>
-            <span class="ch-time">{c.locked ? `Se abre el ${dateFmt(c.unlocksAt)}` : `~${c.minutes} min`}</span>
+            <span class="ch-time">{c.locked ? `Disponible el ${dateFmt(c.unlocksAt)}` : `~${c.minutes} min`}</span>
           </a>
         </li>
       ))}
