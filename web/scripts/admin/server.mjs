@@ -59,7 +59,7 @@ function optionalNumber(v, campo) {
 }
 
 export function novelProps({
-  title, slug, synopsis, estado, categorias, etiquetas, publicada, destacada,
+  title, slug, synopsis, estado, categorias, etiquetas, publicada, destacada, oculta,
   saga, ordenSaga, relacionadas, pageId,
 }) {
   if (!title || !title.trim()) throw new Error('Falta el título de la novela.');
@@ -75,6 +75,9 @@ export function novelProps({
     'Etiquetas': { multi_select: (Array.isArray(etiquetas) ? etiquetas : []).map((name) => ({ name })) },
     'Publicada': { checkbox: !!publicada },
     'Destacada': { checkbox: !!destacada },
+    // Oculta es independiente de Publicada: sin publicar no se sincroniza nada,
+    // y oculta solo la saca de los listados.
+    'Oculta': { checkbox: !!oculta },
     // Siempre presentes: al editar, quitar la saga aquí debe limpiarla en Notion.
     'Saga': { relation: saga ? [{ id: saga }] : [] },
     'Orden en saga': { number: orden },
@@ -174,6 +177,7 @@ async function getNovel(id) {
     etiquetas: (P['Etiquetas']?.multi_select ?? []).map((o) => o.name),
     publicada: !!P['Publicada']?.checkbox,
     destacada: !!P['Destacada']?.checkbox,
+    oculta: !!P['Oculta']?.checkbox,
     saga: P['Saga']?.relation?.[0]?.id ?? '',
     ordenSaga: P['Orden en saga']?.number ?? '',
     relacionadas: (P['Relacionadas']?.relation ?? []).map((r) => r.id),

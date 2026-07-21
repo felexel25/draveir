@@ -1,16 +1,15 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { getReadableNovels } from '../lib/novels';
-import { isHidden } from '../lib/hidden';
 import { EMBLEMS, EMBLEM_BODY, EMBLEM_STROKE, EMBLEM_LABEL, pickEmblem } from '../lib/emblem';
 import { rarityOf, RESET_HOUR } from '../lib/gacha';
 
 // El catálogo entero, ocultas incluidas: son el premio de la invocación. Viajan
 // en el JSON de esta página, así que quien mire el código las verá — es un
-// easter egg, no un candado (ver src/lib/hidden.ts).
+// easter egg, no un candado (ver src/lib/novels.ts).
 const novels = await getReadableNovels({ includeHidden: true });
 const catalog = novels.map((n) => {
-  const hidden = isHidden(n.data.slug);
+  const hidden = n.data.hidden;
   const emblem = pickEmblem(n.data.slug);
   return {
     slug: n.data.slug,

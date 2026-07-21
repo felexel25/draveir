@@ -48,6 +48,7 @@ describe('parseNovel', () => {
       categories: ['Fantasía', 'Aventura'],
       tags: ['Magia'],
       featured: true,
+      hidden: false,
       saga: null,
       sagaOrder: null,
       phase: null,
@@ -55,6 +56,14 @@ describe('parseNovel', () => {
       releaseWindow: 'Finales de 2027',
       related: [],
     });
+  });
+
+  it('lee la casilla Oculta, y sin ella la historia es visible', () => {
+    // Una novela sincronizada antes de que existiera la propiedad no trae el
+    // campo: no puede volverse oculta por accidente.
+    expect(parseNovel(novelPage).hidden).toBe(false);
+    const oculta = { ...novelPage, properties: { ...novelPage.properties, 'Oculta': { checkbox: true } } };
+    expect(parseNovel(oculta).hidden).toBe(true);
   });
 
   it('usa un slug derivado del título si falta Slug', () => {
@@ -180,7 +189,7 @@ describe('parseNovel con sagas', () => {
 describe('symmetrizeRelated', () => {
   const novel = (slug: string, related: string[]): NovelData => ({
     slug, title: slug, synopsis: '', status: null, format: null, categories: [], tags: [],
-    featured: false, saga: null, sagaOrder: null,
+    featured: false, hidden: false, saga: null, sagaOrder: null,
     phase: null, phaseOrder: null, releaseWindow: null, related,
   });
 

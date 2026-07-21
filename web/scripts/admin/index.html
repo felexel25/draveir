@@ -143,6 +143,7 @@
         <div class="checks">
           <label><input type="checkbox" id="nv-pub" checked> Publicada</label>
           <label><input type="checkbox" id="nv-dest"> Destacada</label>
+          <label title="No sale en ningún listado ni en el sitemap. Solo se llega buscándola por su nombre o invocándola."><input type="checkbox" id="nv-oculta"> Oculta</label>
         </div>
         <div class="editbar" id="nv-editbar"><span>Editando novela</span><a id="nv-cancel">cancelar</a></div>
         <button class="btn primary submit" type="submit" id="nv-submit">Crear novela</button>
@@ -324,6 +325,7 @@ $('novForm').addEventListener('submit', async (e) => {
       etiquetas: [...document.querySelectorAll('#nv-tags input:checked')].map(i => i.value),
       publicada: $('nv-pub').checked,
       destacada: $('nv-dest').checked,
+      oculta: $('nv-oculta').checked,
       saga: $('nv-saga').value || null,
       ordenSaga: $('nv-orden').value,
       relacionadas: [...document.querySelectorAll('#nv-rel input:checked')].map(i => i.value),
@@ -433,6 +435,7 @@ $('mg-edit-novel').addEventListener('click', async () => {
     document.querySelectorAll('#nv-cats input').forEach(i => i.checked = n.categorias.includes(i.value));
     document.querySelectorAll('#nv-tags input').forEach(i => i.checked = n.etiquetas.includes(i.value));
     $('nv-pub').checked = n.publicada; $('nv-dest').checked = n.destacada;
+    $('nv-oculta').checked = n.oculta;
     $('nv-saga').value = n.saga || '';
     $('nv-orden').value = n.ordenSaga ?? '';
     // Una novela no se cruza consigo misma: se oculta de la lista.

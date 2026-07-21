@@ -68,6 +68,7 @@ export function parseNovel(
     categories: (p['Categorías']?.multi_select ?? []).map((o: any) => o.name),
     tags: (p['Etiquetas']?.multi_select ?? []).map((o: any) => o.name),
     featured: Boolean(p['Destacada']?.checkbox),
+    hidden: Boolean(p['Oculta']?.checkbox),
     saga: relationSlugs(p['Saga'], sagaSlugById)[0] ?? null,
     sagaOrder: p['Orden en saga']?.number ?? null,
     phase: relationSlugs(p['Fase'], phaseSlugById)[0] ?? null,

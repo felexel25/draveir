@@ -11,7 +11,6 @@ import { formatSubtitle, formatMinutes } from '../../lib/format';
 import { slugify } from '../../lib/slug';
 import { readingOrder, positionIn } from '../../lib/saga';
 import { getReadableNovels } from '../../lib/novels';
-import { isHidden } from '../../lib/hidden';
 
 export async function getStaticPaths() {
   // Con ocultas: su página se genera igual, solo no se enlaza desde ningún lado.
@@ -82,7 +81,7 @@ const sagaPosition = saga
   : null;
 ---
 
-<BaseLayout title={`${novel.data.title} — Draveir`} description={novel.data.synopsis} ogType="book" noindex={isHidden(slug)}>
+<BaseLayout title={`${novel.data.title} — Draveir`} description={novel.data.synopsis} ogType="book" noindex={novel.data.hidden}>
   <script type="application/ld+json" slot="head" is:inline set:html={JSON.stringify({
     '@context': 'https://schema.org',
     '@type': 'Book',
