@@ -13,13 +13,25 @@ export interface ReaderState {
   history: HistoryEntry[];
   // Slugs de historias ocultas que el lector destapó en /invocacion.
   discovered: string[];
+  // La invocación del día: qué salió y qué día de Panamá fue. Se guarda el
+  // resultado, no solo la fecha, para que recargar la página devuelva la misma
+  // carta en vez de perderla.
+  daily: { day: number; slug: string } | null;
 }
 
 export const READER_KEY = 'draveir-reader';
 const HISTORY_CAP = 50;
 
 export function emptyState(): ReaderState {
-  return { version: 1, favorites: [], continueReading: {}, positions: {}, history: [], discovered: [] };
+  return {
+    version: 1,
+    favorites: [],
+    continueReading: {},
+    positions: {},
+    history: [],
+    discovered: [],
+    daily: null,
+  };
 }
 
 export function parseState(raw: string | null): ReaderState {
@@ -34,8 +46,12 @@ export function parseState(raw: string | null): ReaderState {
         o.continueReading && typeof o.continueReading === 'object' ? o.continueReading : {},
       positions: o.positions && typeof o.positions === 'object' ? o.positions : {},
       history: Array.isArray(o.history) ? o.history : [],
-      // Campo añadido después de la v1: un estado guardado antes no lo trae.
+      // Campos añadidos después de la v1: un estado guardado antes no los trae.
       discovered: Array.isArray(o.discovered) ? o.discovered : [],
+      daily:
+        o.daily && typeof o.daily.day === 'number' && typeof o.daily.slug === 'string'
+          ? { day: o.daily.day, slug: o.daily.slug }
+          : null,
     };
   } catch {
     return emptyState();

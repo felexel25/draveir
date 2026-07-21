@@ -26,8 +26,16 @@ describe('parseState', () => {
       positions: { 'a/capitulo-1': 0.5 },
       history: [],
       discovered: [],
+      daily: { day: 20654, slug: 'secreta' },
     };
     expect(parseState(JSON.stringify(s))).toEqual(s);
+  });
+  it('descarta un daily corrupto en vez de arrastrarlo', () => {
+    const malo = (daily: unknown) =>
+      parseState(JSON.stringify({ version: 1, favorites: [], continueReading: {}, positions: {}, history: [], daily }));
+    expect(malo({ day: 'hoy', slug: 'x' }).daily).toBeNull();
+    expect(malo({ slug: 'x' }).daily).toBeNull();
+    expect(malo('nada').daily).toBeNull();
   });
   it('rellena positions si falta (estado viejo)', () => {
     const viejo = JSON.stringify({ version: 1, favorites: [], continueReading: {}, history: [] });

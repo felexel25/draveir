@@ -1,5 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { rarityOf, pick, pickMany, HIDDEN_CHANCE, type GachaCard } from './gacha';
+import {
+  rarityOf,
+  pick,
+  canPull,
+  invocationDay,
+  nextInvocationAt,
+  HIDDEN_CHANCE,
+  type GachaCard,
+} from './gacha';
 
 const card = (slug: string, format: string | null, hidden = false): GachaCard => ({
   slug,
@@ -59,16 +67,56 @@ describe('pick', () => {
   });
 });
 
-describe('pickMany', () => {
-  it('no repite la misma oculta dentro de la tanda', () => {
-    const visibles = [card('a', 'Novela')];
-    const ocultas = [card('secreta', 'Relato', true)];
-    // Siempre por debajo del umbral: sin el filtro, las diez serían 'secreta'.
-    const diez = pickMany(visibles, ocultas, () => 0, 10);
-    expect(diez).toHaveLength(10);
-    expect(diez.filter((c) => c.hidden)).toHaveLength(1);
+// Panamá es UTC-05:00, así que las 7 PM de Panamá son las 00:00 UTC del día
+// siguiente. Se escriben en UTC para no depender de la zona de quien ejecuta.
+const panama = (iso: string) => Date.parse(iso);
+
+describe('invocationDay', () => {
+  it('el día cambia a las 7 PM de Panamá, no a medianoche', () => {
+    const antes = panama('2026-07-20T23:59:00Z'); // 6:59 PM en Panamá
+    const despues = panama('2026-07-21T00:00:00Z'); // 7:00 PM en Panamá
+    expect(invocationDay(despues)).toBe(invocationDay(antes) + 1);
   });
-  it('devuelve tantas cartas como se piden', () => {
-    expect(pickMany([card('a', 'Novela')], [], Math.random, 10)).toHaveLength(10);
+  it('la medianoche de Panamá no abre nada', () => {
+    const antesDeMedianoche = panama('2026-07-21T04:59:00Z'); // 11:59 PM
+    const despuesDeMedianoche = panama('2026-07-21T05:01:00Z'); // 12:01 AM
+    expect(invocationDay(despuesDeMedianoche)).toBe(invocationDay(antesDeMedianoche));
+  });
+});
+
+describe('canPull', () => {
+  const ahora = panama('2026-07-20T18:00:00Z'); // 1 PM en Panamá
+  it('sin tirada previa, se puede', () => {
+    expect(canPull(null, ahora)).toBe(true);
+  });
+  it('con la tirada de hoy hecha, no se puede', () => {
+    expect(canPull({ day: invocationDay(ahora) }, ahora)).toBe(false);
+  });
+  it('la tirada de ayer no bloquea', () => {
+    expect(canPull({ day: invocationDay(ahora) - 1 }, ahora)).toBe(true);
+  });
+  it('se reabre justo al pasar las 7 PM', () => {
+    const seisPM = panama('2026-07-20T23:00:00Z');
+    const sietePM = panama('2026-07-21T00:00:00Z');
+    const daily = { day: invocationDay(seisPM) };
+    expect(canPull(daily, seisPM)).toBe(false);
+    expect(canPull(daily, sietePM)).toBe(true);
+  });
+});
+
+describe('nextInvocationAt', () => {
+  it('apunta a las próximas 7 PM de Panamá', () => {
+    const mediodia = panama('2026-07-20T17:00:00Z'); // 12 PM en Panamá
+    expect(new Date(nextInvocationAt(mediodia)).toISOString()).toBe('2026-07-21T00:00:00.000Z');
+  });
+  it('pasadas las 7 PM apunta a las del día siguiente', () => {
+    const ochoPM = panama('2026-07-21T01:00:00Z'); // 8 PM en Panamá
+    expect(new Date(nextInvocationAt(ochoPM)).toISOString()).toBe('2026-07-22T00:00:00.000Z');
+  });
+  it('siempre queda en el futuro', () => {
+    for (const iso of ['2026-01-01T00:00:00Z', '2026-07-20T23:59:59Z', '2026-12-28T05:00:00Z']) {
+      const t = panama(iso);
+      expect(nextInvocationAt(t)).toBeGreaterThan(t);
+    }
   });
 });

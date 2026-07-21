@@ -57,8 +57,10 @@ que ya son 22 SVG inline.
 novela, con enlace para leerla.
 
 **Historias ocultas como recompensa.** El pool incluye las ocultas del ítem 2.
-Si quedan ocultas sin descubrir, cada tirada tiene un 8% de venir de ese pool;
-si no, sale una visible. Sacar una oculta:
+Si quedan ocultas sin descubrir, cada tirada tiene un 15% de venir de ese pool;
+si no, sale una visible. Con una sola invocación al día, un 8% habría dejado el
+hallazgo a doce días de media, que es más abandono que misterio. Sacar una
+oculta:
 
 - siempre es 5★ (anillo arcoíris), sin importar su formato;
 - la marca como descubierta en el estado del lector (`discovered: string[]`);
@@ -90,9 +92,17 @@ no un candado — igual que el resto del ítem 2.
 3. La carta cae boca abajo y se voltea con `transform: rotateY(180deg)`.
 4. Reverso: arcano, título, formato y botón "Leer ahora".
 
-**Interacción.** Un botón "Invocar" (tira simple) y otro "Invocar ×10". Sin
-moneda ni límite: no hay nada que monetizar y un contador sólo daría fricción.
+**Interacción.** Un botón: "Invocar". Una invocación por día, sin moneda.
 `prefers-reduced-motion` salta directo a la fase 4.
+
+**El día empieza a las 7 PM de Panamá**, no a medianoche: la misma hora a la que
+se publican los capítulos, así que quien entra a leer lo nuevo se encuentra la
+invocación recién abierta. Hecha la tirada, la carta del día se queda en pantalla
+—recargar no la pierde ni regala otra— y debajo corre la cuenta atrás hasta la
+siguiente. El límite vive en `localStorage`: es un ritmo, no un candado.
+
+**Descartada la tirada de diez.** Con una invocación al día no tiene sentido, y
+diez cartas en una rejilla dejaban cada una demasiado pequeña para leerse.
 
 **Sin JavaScript.** La página muestra el enlace a `/historias`. No hay
 invocación que hacer sin cliente.
@@ -109,5 +119,13 @@ Lo que se prueba con Vitest, en la lógica pura (nada de DOM):
 - `pick()` del gacha con un aleatorio inyectado: devuelve oculta bajo el umbral,
   visible por encima, y visible siempre que no queden ocultas por descubrir.
 - `discover()`: añade sin duplicar y sobrevive a un estado viejo sin el campo.
+- El corte de las 7 PM: que el día cambie a esa hora y no a medianoche, que la
+  tirada de ayer no bloquee, y que la próxima invocación caiga siempre en el
+  futuro.
+
+Un detalle que sólo se ve corriendo la página: el CSS con `<style>` de Astro es
+*scoped* por `data-astro-cid-…`, y la carta se crea con `innerHTML`, así que no
+lo recibe. Los estilos de la carta van en un bloque `is:global` prefijado por
+`.stage`. Sin eso la carta sale como HTML plano.
 
 La animación no se prueba automáticamente; se revisa a ojo.

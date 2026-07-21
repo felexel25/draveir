@@ -3,7 +3,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import { getReadableNovels } from '../lib/novels';
 import { isHidden } from '../lib/hidden';
 import { EMBLEMS, EMBLEM_BODY, EMBLEM_STROKE, EMBLEM_LABEL, pickEmblem } from '../lib/emblem';
-import { rarityOf } from '../lib/gacha';
+import { rarityOf, RESET_HOUR } from '../lib/gacha';
 
 // El catálogo entero, ocultas incluidas: son el premio de la invocación. Viajan
 // en el JSON de esta página, así que quien mire el código las verá — es un
@@ -23,11 +23,16 @@ const catalog = novels.map((n) => {
   };
 });
 
+const horaReset = `${RESET_HOUR > 12 ? RESET_HOUR - 12 : RESET_HOUR}:00 ${RESET_HOUR >= 12 ? 'PM' : 'AM'}`;
+
 // El anillo: los 22 arcanos repartidos en la circunferencia, cada uno mirando
 // hacia afuera como en un círculo de invocación. El índice de cada uno importa —
 // al terminar la tirada, el anillo se detiene con el arcano de tu carta arriba.
 const RADIO = 150;
-const ESCALA = 0.24;
+// Los cuerpos vienen normalizados a lado mayor 60 de 100, así que a esta escala
+// cada arcano ocupa unas 30 unidades de las 42 que le tocan de circunferencia:
+// grandes para leerse, con aire suficiente para no tocarse.
+const ESCALA = 0.5;
 const arcanos = EMBLEMS.map((name, i) => ({
   name,
   angulo: (i * 360) / EMBLEMS.length,
@@ -38,7 +43,7 @@ const arcanos = EMBLEMS.map((name, i) => ({
 
 <BaseLayout
   title="Invocación — Draveir"
-  description="Deja que el azar elija tu próxima lectura."
+  description="Una invocación al día: deja que los arcanos elijan tu próxima lectura."
   noindex
 >
   <main class="container" id="contenido">
@@ -46,15 +51,19 @@ const arcanos = EMBLEMS.map((name, i) => ({
       <span class="eyebrow">Los arcanos deciden</span>
       <h1>Invocación</h1>
       <p>
-        Veintidós arcanos, un catálogo entero y ninguna preferencia. Gira el círculo y lee lo que
-        salga.
+        Veintidós arcanos, un catálogo entero y ninguna preferencia. Una invocación al día: gira el
+        círculo y lee lo que salga.
       </p>
     </header>
 
     <div class="altar" id="altar">
       <svg class="ring" id="ring" viewBox="0 0 400 400" aria-hidden="true">
-        <circle class="ring-line" cx="200" cy="200" r={RADIO} />
-        <circle class="ring-line inner" cx="200" cy="200" r={RADIO - 26} />
+        {/* Los dos aros enmarcan la banda de arcanos en vez de cruzarla: con un
+            solo círculo en el radio de los glifos, la línea los partía por la
+            mitad. El punteado interior cierra el círculo por dentro. */}
+        <circle class="ring-line" cx="200" cy="200" r={RADIO + 24} />
+        <circle class="ring-line" cx="200" cy="200" r={RADIO - 24} />
+        <circle class="ring-line inner" cx="200" cy="200" r={RADIO - 44} />
         {arcanos.map((a) => (
           <g
             transform={`rotate(${a.angulo} 200 200) translate(200 ${200 - RADIO}) scale(${ESCALA}) translate(-50 -50)`}
@@ -68,14 +77,16 @@ const arcanos = EMBLEMS.map((name, i) => ({
         ))}
       </svg>
       <div class="burst" id="burst" aria-hidden="true"></div>
-      <div class="cards" id="cards" aria-live="polite"></div>
+      <div class="stage" id="stage" aria-live="polite"></div>
     </div>
 
     <div class="actions">
-      <button type="button" class="btn btn-primary" id="pull-1">Invocar</button>
-      <button type="button" class="btn" id="pull-10">Invocar diez</button>
+      <button type="button" class="btn btn-primary" id="pull">Invocar</button>
+      <p class="wait" id="wait" hidden>
+        Ya invocaste hoy. La próxima se abre a las {horaReset} de Panamá.
+        <span class="cd" id="cd" role="timer"></span>
+      </p>
     </div>
-    <p class="fine">Cada invocación es independiente. No hay nada que gastar.</p>
 
     <noscript>
       <p class="fine">
@@ -88,7 +99,8 @@ const arcanos = EMBLEMS.map((name, i) => ({
   <script type="application/json" id="catalog" is:inline set:html={JSON.stringify(catalog)}></script>
   <script>
     import { parseState, discover, READER_KEY } from '../lib/reader';
-    import { pickMany, type GachaCard } from '../lib/gacha';
+    import { pick, canPull, invocationDay, nextInvocationAt, type GachaCard } from '../lib/gacha';
+    import { formatCountdown } from '../lib/unlock';
     import { EMBLEM_BODY, EMBLEM_STROKE, EMBLEMS } from '../lib/emblem';
 
     interface Carta extends GachaCard {
@@ -100,112 +112,143 @@ const arcanos = EMBLEMS.map((name, i) => ({
     const visibles = catalog.filter((c) => !c.hidden);
     const ocultas = catalog.filter((c) => c.hidden);
 
-    const ring = document.getElementById('ring')!;
+    const altar = document.getElementById('altar')!;
+    const ring = document.getElementById('ring') as unknown as HTMLElement;
     const burst = document.getElementById('burst')!;
-    const cards = document.getElementById('cards')!;
-    const botones = [
-      document.getElementById('pull-1') as HTMLButtonElement,
-      document.getElementById('pull-10') as HTMLButtonElement,
-    ];
+    const stage = document.getElementById('stage')!;
+    const boton = document.getElementById('pull') as HTMLButtonElement;
+    const espera = document.getElementById('wait')!;
+    const cd = document.getElementById('cd')!;
 
     const quieto = matchMedia('(prefers-reduced-motion: reduce)').matches;
     const sleep = (ms: number) => new Promise((r) => setTimeout(r, quieto ? 0 : ms));
     const esc = (t: string) =>
       t.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c] as string);
 
-    let girosAcumulados = 0;
-
-    const carta = (c: Carta, i: number) => `
-      <div class="card" data-rarity="${c.rarity}" style="--i:${i}">
+    const pintar = (c: Carta) => `
+      <div class="card" data-rarity="${c.rarity}"${c.hidden ? ' data-found' : ''}>
         <div class="card-inner">
           <div class="face back"><span class="sigil">✦</span></div>
           <div class="face front">
-            ${c.hidden ? '<span class="found">Historia oculta</span>' : ''}
-            <svg viewBox="0 0 100 100" fill="none" stroke="currentColor"
+            <span class="arcano">${c.hidden ? 'Historia oculta' : esc(c.label)}</span>
+            <svg class="glifo" viewBox="0 0 100 100" fill="none" stroke="currentColor"
                  stroke-width="${EMBLEM_STROKE[c.emblem]}" stroke-linecap="round"
                  stroke-linejoin="round" aria-hidden="true">${EMBLEM_BODY[c.emblem]}</svg>
-            <span class="arcano">${esc(c.label)}</span>
+            <span class="rank" aria-label="Rareza ${c.rarity} de 5">${'✦'.repeat(c.rarity)}</span>
             <h2>${esc(c.title)}</h2>
-            <span class="rank" aria-label="${c.rarity} de 5">${'✦'.repeat(c.rarity)}</span>
             <span class="fmt">${esc(c.format ?? 'Historia')}</span>
             <a class="btn btn-primary" href="/novela/${c.slug}">Leer ahora</a>
           </div>
         </div>
       </div>`;
 
-    async function invocar(n: number) {
-      for (const b of botones) b.disabled = true;
-      cards.innerHTML = '';
-      cards.classList.remove('shown');
+    // Deja el anillo con el arcano dado arriba. Los giros se acumulan para que
+    // siempre avance en el mismo sentido y nunca dé marcha atrás.
+    let vueltas = 0;
+    const apuntar = (c: Carta, girando: boolean) => {
+      if (girando) vueltas += 3;
+      const i = EMBLEMS.indexOf(c.emblem);
+      ring.style.transform = `rotate(${vueltas * 360 - (i * 360) / EMBLEMS.length}deg)`;
+    };
+
+    // Cuenta atrás hasta la próxima invocación. Al llegar a cero recarga: es más
+    // honesto que destrabar el botón a mano y arriesgar que el estado no cuadre.
+    let reloj = 0;
+    const contar = () => {
+      const falta = nextInvocationAt(Date.now()) - Date.now();
+      if (falta <= 0) return location.reload();
+      // Hasta la próxima invocación nunca falta un día entero, así que el "0d"
+      // que antepone formatCountdown solo estorba.
+      cd.textContent = formatCountdown(falta).replace(/^0d /, '');
+    };
+
+    const bloquear = () => {
+      boton.hidden = true;
+      espera.hidden = false;
+      contar();
+      clearInterval(reloj);
+      reloj = window.setInterval(contar, 1000);
+    };
+
+    async function invocar() {
+      boton.disabled = true;
       burst.className = 'burst';
 
       let s = parseState(localStorage.getItem(READER_KEY));
       const sinDescubrir = ocultas.filter((c) => !s.discovered.includes(c.slug));
-      const sacadas = pickMany(visibles, sinDescubrir, Math.random, n) as Carta[];
+      const carta = pick(visibles, sinDescubrir, Math.random) as Carta | null;
+      if (!carta) return; // Catálogo vacío: nada que invocar.
 
-      // Lo mejor de la tanda manda en el espectáculo: el anillo se detiene en su
-      // arcano y el destello toma su color.
-      const mejor = sacadas.reduce((a, b) => (b.rarity > a.rarity ? b : a));
+      altar.classList.add('casting');
+      apuntar(carta, true);
+      await sleep(1500);
 
-      // El anillo se para con el arcano de la carta arriba. Los giros se acumulan
-      // para que siempre gire hacia adelante, nunca dé marcha atrás.
-      girosAcumulados += 3;
-      const indice = EMBLEMS.indexOf(mejor.emblem);
-      const grados = girosAcumulados * 360 - (indice * 360) / EMBLEMS.length;
-      ring.classList.add('casting');
-      (ring as unknown as HTMLElement).style.transform = `rotate(${grados}deg)`;
-      await sleep(1400);
+      altar.classList.remove('casting');
+      burst.className = `burst fire r${carta.rarity}`;
+      await sleep(400);
 
-      ring.classList.remove('casting');
-      burst.className = `burst fire r${mejor.rarity}`;
-      await sleep(420);
+      mostrar(carta);
 
-      cards.className = n > 1 ? 'cards many' : 'cards';
-      cards.innerHTML = sacadas.map(carta).join('');
-      requestAnimationFrame(() => cards.classList.add('shown'));
-
-      for (const c of sacadas) if (c.hidden) s = discover(s, c.slug);
+      if (carta.hidden) s = discover(s, carta.slug);
+      s = { ...s, daily: { day: invocationDay(Date.now()), slug: carta.slug } };
       localStorage.setItem(READER_KEY, JSON.stringify(s));
-
-      // Se reabre al terminar el volteo escalonado de la última carta.
-      await sleep(700 + sacadas.length * 90);
-      for (const b of botones) b.disabled = false;
+      bloquear();
     }
 
-    botones[0].addEventListener('click', () => invocar(1));
-    botones[1].addEventListener('click', () => invocar(10));
+    const mostrar = (c: Carta) => {
+      stage.innerHTML = pintar(c);
+      altar.classList.add('revealed');
+      requestAnimationFrame(() => stage.classList.add('shown'));
+    };
+
+    // Al entrar: si ya se invocó hoy, la carta del día sigue ahí. Recargar no la
+    // pierde ni regala otra tirada.
+    const inicial = parseState(localStorage.getItem(READER_KEY));
+    if (!canPull(inicial.daily, Date.now())) {
+      const hoy = catalog.find((c) => c.slug === inicial.daily!.slug);
+      if (hoy) {
+        apuntar(hoy, false);
+        mostrar(hoy);
+        bloquear();
+      }
+    }
+
+    boton.addEventListener('click', invocar);
   </script>
 </BaseLayout>
 
 <style>
-  .intro { text-align: center; margin-bottom: var(--space-5); }
+  .intro { text-align: center; margin-bottom: var(--space-4); }
   .intro p { color: var(--text-muted); max-width: 46ch; margin-inline: auto; }
 
-  /* El altar: el anillo de fondo y las cartas encima, en la misma celda. */
+  /* El altar: anillo, destello y carta comparten la misma celda, así que la
+     carta sale del centro del círculo. La altura la marca el más alto de los
+     tres, que pasa a ser la carta en cuanto aparece. */
   .altar {
     display: grid;
     place-items: center;
-    min-height: min(70vw, 420px);
     margin-bottom: var(--space-5);
   }
   .altar > * { grid-area: 1 / 1; }
 
   .ring {
-    width: min(88vw, 420px);
+    width: min(84vw, 400px);
     aspect-ratio: 1;
     color: var(--brass);
-    opacity: 0.5;
+    opacity: 0.45;
     /* Curva lenta al final: el anillo se posa en su arcano en vez de frenar en
        seco, que es lo que hace legible dónde se detuvo. */
-    transition: transform 1.4s cubic-bezier(0.16, 0.9, 0.24, 1);
+    transition: transform 1.5s cubic-bezier(0.16, 0.9, 0.24, 1), opacity 0.5s ease;
   }
-  .ring-line { stroke: var(--brass); stroke-width: 1; fill: none; opacity: 0.55; }
-  .ring-line.inner { opacity: 0.3; stroke-dasharray: 3 9; }
-  .ring.casting { opacity: 1; }
+  .ring-line { stroke: var(--brass); stroke-width: 1; fill: none; opacity: 0.5; }
+  .ring-line.inner { opacity: 0.28; stroke-dasharray: 3 9; }
+  .altar.casting .ring { opacity: 1; }
+  /* Con la carta puesta, el anillo baja a aura: sigue ahí, deja de competir. */
+  .altar.revealed .ring { opacity: 0.16; }
 
   /* El destello: un anillo que se expande y se apaga, teñido por la rareza. */
   .burst {
-    width: min(88vw, 420px);
+    width: min(84vw, 400px);
     aspect-ratio: 1;
     border-radius: 50%;
     opacity: 0;
@@ -223,90 +266,111 @@ const arcanos = EMBLEMS.map((name, i) => ({
     to { opacity: 0; transform: scale(1.15); }
   }
 
-  .cards { display: grid; gap: var(--space-3); justify-items: center; }
-  .cards.many {
-    grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
-    width: 100%;
-    max-width: 62rem;
+  .stage { width: min(18rem, 76vw); }
+
+  .actions { display: grid; justify-items: center; gap: var(--space-3); }
+  .wait, .fine {
+    text-align: center;
+    color: var(--text-muted);
+    font-family: var(--font-sans);
+    font-size: var(--step--1);
+    margin: 0;
+    max-width: 34ch;
+  }
+  .cd {
+    display: block;
+    font-variant-numeric: tabular-nums;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--brass);
+    margin-top: var(--space-2);
   }
 
-  .card { perspective: 900px; width: 100%; max-width: 17rem; }
-  .cards.many .card { max-width: none; }
-  .card-inner {
+  @media (prefers-reduced-motion: reduce) {
+    .ring { transition: none; }
+    .burst.fire { animation: none; }
+  }
+</style>
+
+<style is:global>
+  /* La carta nace en runtime (innerHTML), y el CSS scoped de Astro solo alcanza
+     lo que estaba en la plantilla: sin `is:global` estos estilos no la tocan y
+     la carta sale como HTML plano. Todo va prefijado por `.stage`, que existe
+     únicamente en esta página, así que nada se escapa al resto del sitio.
+
+     La cara frontal va en flujo y el reverso encima en absoluto: así la altura
+     la fija el contenido real y nada queda apretado ni recortado, por largo que
+     sea el título. */
+  .stage .card { perspective: 1000px; }
+  .stage .card-inner {
     position: relative;
     transform-style: preserve-3d;
-    /* El escalonado es lo que convierte diez cartas en una tanda y no en un
-       parpadeo: cada una entra 90 ms después de la anterior. */
-    transition: transform 0.6s cubic-bezier(0.3, 0.8, 0.3, 1) calc(var(--i) * 90ms);
-    aspect-ratio: 3 / 4.4;
+    transition: transform 0.7s cubic-bezier(0.3, 0.8, 0.3, 1);
   }
-  .cards.shown .card-inner { transform: rotateY(180deg); }
+  .stage.shown .card-inner { transform: rotateY(180deg); }
 
-  .face {
-    position: absolute;
-    inset: 0;
+  .stage .face {
     backface-visibility: hidden;
     border-radius: var(--radius);
     border: 1px solid var(--border);
     background: var(--surface);
+    box-shadow: var(--shadow);
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    gap: var(--space-2);
-    padding: var(--space-3);
     text-align: center;
-    overflow: hidden;
+    padding: var(--space-4) var(--space-3);
   }
-  .back {
+  .stage .back {
+    position: absolute;
+    inset: 0;
+    justify-content: center;
     background: linear-gradient(160deg, var(--surface-2), var(--surface));
     border-color: color-mix(in srgb, var(--brass) 40%, var(--border));
   }
-  .back .sigil { font-size: 1.8rem; opacity: 0.8; }
-  .front { transform: rotateY(180deg); }
-  .front svg { width: 40%; color: var(--brass); }
+  .stage .back .sigil { font-size: 2rem; }
+  .stage .front { position: relative; transform: rotateY(180deg); }
 
-  .arcano {
+  /* Espaciado por bloques, no un gap uniforme: el arcano y el glifo son una
+     unidad, el texto otra, y el botón cierra separado de ambas. */
+  .stage .arcano {
     font-family: var(--font-sans);
     font-size: var(--step--1);
     letter-spacing: 0.14em;
     text-transform: uppercase;
     color: var(--text-muted);
+    margin-bottom: var(--space-3);
   }
-  .front h2 { font-size: var(--step-1); margin: 0; }
-  .cards.many .front h2 { font-size: var(--step--1); }
-  .cards.many .arcano, .cards.many .fmt, .cards.many .front .btn { display: none; }
-  .rank { color: var(--brass); letter-spacing: 0.2em; font-size: var(--step--1); }
-  .fmt { font-family: var(--font-sans); font-size: var(--step--1); color: var(--text-muted); }
+  .stage .glifo { width: 92px; height: 92px; color: var(--brass); margin-bottom: var(--space-3); }
+  .stage .rank { color: var(--brass); letter-spacing: 0.22em; font-size: 0.85rem; line-height: 1; }
+  .stage .front h2 {
+    font-size: var(--step-1);
+    margin: var(--space-2) 0 var(--space-1);
+    text-wrap: balance;
+  }
+  .stage .fmt {
+    font-family: var(--font-sans);
+    font-size: var(--step--1);
+    color: var(--text-muted);
+    margin-bottom: var(--space-4);
+  }
+  .stage .front .btn { width: 100%; justify-content: center; }
 
   /* El borde delata la rareza antes de leer nada. */
-  .card[data-rarity='4'] .front { border-color: color-mix(in srgb, var(--brass) 55%, var(--border)); }
-  .card[data-rarity='5'] .front {
-    border-color: transparent;
+  .stage .card[data-rarity='4'] .front {
+    border-color: color-mix(in srgb, var(--brass) 55%, var(--border));
+  }
+  .stage .card[data-rarity='5'] .front {
+    border: 2px solid transparent;
     background:
       linear-gradient(var(--surface), var(--surface)) padding-box,
       conic-gradient(from 0deg, #e0607e, var(--warm), #7ed6a0, var(--accent), #b58ae0, #e0607e) border-box;
-    border: 2px solid transparent;
   }
-  .found {
-    font-family: var(--font-sans);
-    font-size: var(--step--1);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--warm);
-  }
-
-  .actions { display: flex; gap: var(--space-3); justify-content: center; flex-wrap: wrap; }
-  .fine {
-    text-align: center;
-    color: var(--text-muted);
-    font-family: var(--font-sans);
-    font-size: var(--step--1);
-    margin-top: var(--space-3);
-  }
+  /* Una historia oculta no lleva nombre de arcano: lleva el hallazgo, y ese
+     rótulo sí se enciende. Una novela 5★ corriente mantiene el gris. */
+  .stage .card[data-found] .arcano { color: var(--warm); }
 
   @media (prefers-reduced-motion: reduce) {
-    .ring, .card-inner { transition: none; }
-    .burst.fire { animation: none; }
+    .stage .card-inner { transition: none; }
   }
 </style>
