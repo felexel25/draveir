@@ -4,10 +4,16 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import NovelCard from '../components/NovelCard.astro';
 import { novelHaystack } from '../lib/search';
 import { getReadableNovels } from '../lib/novels';
+import { isHidden } from '../lib/hidden';
 
 const novels = (await getReadableNovels()).sort((a, b) =>
   a.data.title.localeCompare(b.data.title, 'es'),
 );
+// Las ocultas que el lector haya destapado en /invocacion. La pestaña solo
+// existe si hay alguna oculta en el catálogo: sin ellas sería una promesa vacía.
+const ocultas = (await getReadableNovels({ includeHidden: true }))
+  .filter((n) => isHidden(n.data.slug))
+  .sort((a, b) => a.data.title.localeCompare(b.data.title, 'es'));
 const chapterTitles: Record<string, string> = {};
 for (const c of await getCollection('chapters')) {
   chapterTitles[`${c.data.novelSlug}/${c.data.chapterSlug}`] = c.data.title;
@@ -31,6 +37,11 @@ const catalog = { chapterTitles, novelTitles };
       <button role="tab" data-tab="history" aria-selected="false" aria-controls="panel-history">
         Historial<span class="n" data-n="history"></span>
       </button>
+      {ocultas.length > 0 && (
+        <button role="tab" data-tab="found" aria-selected="false" aria-controls="panel-found">
+          Descubiertas<span class="n" data-n="found"></span>
+        </button>
+      )}
     </div>
 
     <section class="panel" id="panel-continue" role="tabpanel" aria-labelledby="tab-continue">
@@ -52,6 +63,20 @@ const catalog = { chapterTitles, novelTitles };
       <p class="empty" data-empty="history">Tu historial de lectura aparecerá aquí.</p>
       <ul class="stack" id="list-history"></ul>
     </section>
+
+    {ocultas.length > 0 && (
+      <section class="panel" id="panel-found" role="tabpanel" hidden>
+        <p class="empty" data-empty="found">
+          Hay historias que no salen en ningún listado. Pruébalas en <a href="/invocacion">Invocación</a>.
+        </p>
+        <ul class="novel-grid" id="found-grid">
+          {ocultas.map((n) => (
+            <NovelCard slug={n.data.slug} title={n.data.title} synopsis={n.data.synopsis}
+              status={n.data.status} format={n.data.format} categories={n.data.categories} hidden />
+          ))}
+        </ul>
+      </section>
+    )}
   </main>
 
   <script type="application/json" id="catalog" is:inline set:html={JSON.stringify(catalog)}></script>
@@ -92,9 +117,24 @@ const catalog = { chapterTitles, novelTitles };
         new Date(h.at).toLocaleDateString('es', { day: 'numeric', month: 'long', year: 'numeric' })))
       .join('');
 
+    // Descubiertas: se imprimen todas escondidas y solo se destapan las que el
+    // lector ya sacó en /invocacion.
+    let foundCount = 0;
+    document.querySelectorAll<HTMLElement>('#found-grid [data-hidden]').forEach((li) => {
+      const slug = li.querySelector<HTMLAnchorElement>('a.cover-link')?.getAttribute('href')?.split('/').pop() ?? '';
+      const on = s.discovered.includes(slug);
+      li.style.display = on ? '' : 'none';
+      if (on) foundCount++;
+    });
+
     // Contadores + estados vacíos
-    const counts: Record<string, number> = { continue: contEntries.length, fav: favCount, history: s.history.length };
-    for (const key of ['continue', 'fav', 'history'] as const) {
+    const counts: Record<string, number> = {
+      continue: contEntries.length,
+      fav: favCount,
+      history: s.history.length,
+      found: foundCount,
+    };
+    for (const key of ['continue', 'fav', 'history', 'found'] as const) {
       const n = counts[key];
       const badge = document.querySelector(`.n[data-n="${key}"]`);
       if (badge) badge.textContent = n ? ` · ${n}` : '';
@@ -109,6 +149,9 @@ const catalog = { chapterTitles, novelTitles };
       fav: document.getElementById('panel-fav')!,
       history: document.getElementById('panel-history')!,
     };
+    // La pestaña de descubiertas solo existe si hay historias ocultas.
+    const found = document.getElementById('panel-found');
+    if (found) panels.found = found;
     const activate = (name: string) => {
       tabs.forEach((t) => t.setAttribute('aria-selected', String(t.dataset.tab === name)));
       for (const [k, el] of Object.entries(panels)) el.hidden = k !== name;

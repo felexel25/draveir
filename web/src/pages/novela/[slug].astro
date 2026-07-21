@@ -11,9 +11,11 @@ import { formatSubtitle, formatMinutes } from '../../lib/format';
 import { slugify } from '../../lib/slug';
 import { readingOrder, positionIn } from '../../lib/saga';
 import { getReadableNovels } from '../../lib/novels';
+import { isHidden } from '../../lib/hidden';
 
 export async function getStaticPaths() {
-  const novels = await getReadableNovels();
+  // Con ocultas: su página se genera igual, solo no se enlaza desde ningún lado.
+  const novels = await getReadableNovels({ includeHidden: true });
   return novels.map((n) => ({ params: { slug: n.data.slug } }));
 }
 
@@ -80,7 +82,7 @@ const sagaPosition = saga
   : null;
 ---
 
-<BaseLayout title={`${novel.data.title} — Draveir`} description={novel.data.synopsis} ogType="book">
+<BaseLayout title={`${novel.data.title} — Draveir`} description={novel.data.synopsis} ogType="book" noindex={isHidden(slug)}>
   <script type="application/ld+json" slot="head" is:inline set:html={JSON.stringify({
     '@context': 'https://schema.org',
     '@type': 'Book',
@@ -135,11 +137,16 @@ const sagaPosition = saga
       </div>
     </div>
 
-    <div class="sec-head"><h2>Capítulos</h2><span class="count">{chapters.length}</span></div>
+    <div class="sec-head">
+      <h2>Capítulos</h2><span class="count">{chapters.length}</span>
+      <span class="read-count" id="read-count" hidden></span>
+    </div>
     <ol class="chapter-list">
       {chapters.map((c) => (
         <li>
-          <a href={`/novela/${slug}/${c.chapterSlug}`} class={c.locked ? 'locked' : ''} data-unlocks={c.locked ? c.unlocksAt : undefined}>
+          <a href={`/novela/${slug}/${c.chapterSlug}`} class={c.locked ? 'locked' : ''}
+             data-unlocks={c.locked ? c.unlocksAt : undefined}
+             data-ch={c.locked ? undefined : c.chapterSlug}>
             <span>{c.locked && <span class="lock" aria-hidden="true">✦</span>}{c.title}{c.isNew && <span class="new-badge">Nuevo</span>}</span>
             <span class="ch-time">{c.locked ? `Disponible el ${dateFmt(c.unlocksAt)}` : `~${c.minutes} min`}</span>
           </a>
@@ -174,9 +181,26 @@ const sagaPosition = saga
 
   <script is:inline set:html={`window.__novelSlug=${JSON.stringify(novel.data.slug)};`}></script>
   <script>
-    import { parseState, READER_KEY } from '../../lib/reader';
+    import { parseState, isRead, READER_KEY } from '../../lib/reader';
     const slug = (window as any).__novelSlug as string;
     const s = parseState(localStorage.getItem(READER_KEY));
+
+    // Capítulos ya leídos: marca en la fila y contador en el encabezado. Sin JS
+    // no se pinta nada, que es lo correcto: el progreso vive en este navegador.
+    let leidos = 0;
+    for (const a of document.querySelectorAll<HTMLAnchorElement>('.chapter-list a[data-ch]')) {
+      if (!isRead(s, `${slug}/${a.dataset.ch}`)) continue;
+      leidos++;
+      a.classList.add('read');
+      const t = a.querySelector('.ch-time');
+      if (t) t.textContent = '✓ Leído';
+    }
+    const contador = document.getElementById('read-count');
+    if (contador && leidos) {
+      contador.textContent = `${leidos} leídos`;
+      contador.hidden = false;
+    }
+
     const ch = s.continueReading[slug];
     const btn = document.getElementById('continue-btn') as HTMLAnchorElement | null;
     // Con progreso guardado, el botón "Comenzar a leer" pasa a "Seguir leyendo"
@@ -194,6 +218,15 @@ const sagaPosition = saga
   .detail h1 { margin: var(--space-2) 0 var(--space-3); }
   .synopsis { color: var(--text-muted); font-size: 1.1rem; max-width: 52ch; }
   .detail-actions { display: flex; gap: 0.75rem; margin-top: var(--space-4); flex-wrap: wrap; align-items: center; }
+  /* Con tres hijos, el space-between del .sec-head global dejaría el contador
+     suelto en el centro; esto reagrupa los dos números a la derecha. */
+  .sec-head h2 { margin-right: auto; }
+  .read-count { font-family: var(--font-sans); font-size: var(--step--1); color: var(--brass); }
+  /* Leído = ya cumplió, baja la voz. El capítulo pendiente es el que debe
+     destacar, así que aquí se resta contraste en vez de sumarlo. */
+  .chapter-list a.read span:first-child { color: var(--text-muted); }
+  .chapter-list a.read:hover span:first-child { color: var(--text); }
+  .chapter-list a.read .ch-time { color: var(--brass); }
   .chapter-list a.locked { color: var(--text-muted); }
   .chapter-list a.locked:hover { color: var(--text); }
   .chapter-list a.locked .ch-time { color: var(--warm); }

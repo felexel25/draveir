@@ -11,13 +11,27 @@ export interface ReaderState {
   // Posición de lectura por capítulo (`${novelSlug}/${chapterSlug}` → fracción 0..1).
   positions: Record<string, number>;
   history: HistoryEntry[];
+  // Slugs de historias ocultas que el lector destapó en /invocacion.
+  discovered: string[];
+  // La invocación del día: qué salió y qué día de Panamá fue. Se guarda el
+  // resultado, no solo la fecha, para que recargar la página devuelva la misma
+  // carta en vez de perderla.
+  daily: { day: number; slug: string } | null;
 }
 
 export const READER_KEY = 'draveir-reader';
 const HISTORY_CAP = 50;
 
 export function emptyState(): ReaderState {
-  return { version: 1, favorites: [], continueReading: {}, positions: {}, history: [] };
+  return {
+    version: 1,
+    favorites: [],
+    continueReading: {},
+    positions: {},
+    history: [],
+    discovered: [],
+    daily: null,
+  };
 }
 
 export function parseState(raw: string | null): ReaderState {
@@ -32,6 +46,12 @@ export function parseState(raw: string | null): ReaderState {
         o.continueReading && typeof o.continueReading === 'object' ? o.continueReading : {},
       positions: o.positions && typeof o.positions === 'object' ? o.positions : {},
       history: Array.isArray(o.history) ? o.history : [],
+      // Campos añadidos después de la v1: un estado guardado antes no los trae.
+      discovered: Array.isArray(o.discovered) ? o.discovered : [],
+      daily:
+        o.daily && typeof o.daily.day === 'number' && typeof o.daily.slug === 'string'
+          ? { day: o.daily.day, slug: o.daily.slug }
+          : null,
     };
   } catch {
     return emptyState();
@@ -49,6 +69,19 @@ export function getPosition(s: ReaderState, key: string): number {
   return typeof v === 'number' && v > 0 && v <= 1 ? v : 0;
 }
 
+// Leído = llegó al 90% del capítulo. No al 100%: el pie, la navegación entre
+// capítulos y el margen inferior son parte del scroll pero no del texto, así que
+// exigir el final exacto dejaría capítulos terminados sin marcar.
+export const READ_THRESHOLD = 0.9;
+
+export function isRead(s: ReaderState, key: string): boolean {
+  return getPosition(s, key) >= READ_THRESHOLD;
+}
+
+export function countRead(s: ReaderState, keys: string[]): number {
+  return keys.filter((k) => isRead(s, k)).length;
+}
+
 export function isFavorite(s: ReaderState, slug: string): boolean {
   return s.favorites.includes(slug);
 }
@@ -58,6 +91,10 @@ export function toggleFavorite(s: ReaderState, slug: string): ReaderState {
     ? s.favorites.filter((x) => x !== slug)
     : [slug, ...s.favorites];
   return { ...s, favorites };
+}
+
+export function discover(s: ReaderState, slug: string): ReaderState {
+  return s.discovered.includes(slug) ? s : { ...s, discovered: [...s.discovered, slug] };
 }
 
 export function recordRead(

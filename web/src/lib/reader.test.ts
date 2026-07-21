@@ -7,6 +7,9 @@ import {
   recordRead,
   setPosition,
   getPosition,
+  isRead,
+  countRead,
+  discover,
 } from './reader';
 
 describe('parseState', () => {
@@ -22,8 +25,17 @@ describe('parseState', () => {
       continueReading: { a: 'capitulo-1' },
       positions: { 'a/capitulo-1': 0.5 },
       history: [],
+      discovered: [],
+      daily: { day: 20654, slug: 'secreta' },
     };
     expect(parseState(JSON.stringify(s))).toEqual(s);
+  });
+  it('descarta un daily corrupto en vez de arrastrarlo', () => {
+    const malo = (daily: unknown) =>
+      parseState(JSON.stringify({ version: 1, favorites: [], continueReading: {}, positions: {}, history: [], daily }));
+    expect(malo({ day: 'hoy', slug: 'x' }).daily).toBeNull();
+    expect(malo({ slug: 'x' }).daily).toBeNull();
+    expect(malo('nada').daily).toBeNull();
   });
   it('rellena positions si falta (estado viejo)', () => {
     const viejo = JSON.stringify({ version: 1, favorites: [], continueReading: {}, history: [] });
@@ -64,5 +76,40 @@ describe('recordRead', () => {
     expect(s.continueReading.a).toBe('capitulo-1');
     expect(s.history.map((h) => h.chapterSlug)).toEqual(['capitulo-1', 'capitulo-2']);
     expect(s.history[0].at).toBe(3);
+  });
+});
+
+describe('isRead / countRead', () => {
+  it('marca leído desde el 90% de la posición', () => {
+    let s = emptyState();
+    expect(isRead(s, 'a/capitulo-1')).toBe(false);
+    s = setPosition(s, 'a/capitulo-1', 0.89);
+    expect(isRead(s, 'a/capitulo-1')).toBe(false);
+    s = setPosition(s, 'a/capitulo-1', 0.9);
+    expect(isRead(s, 'a/capitulo-1')).toBe(true);
+    s = setPosition(s, 'a/capitulo-1', 1);
+    expect(isRead(s, 'a/capitulo-1')).toBe(true);
+  });
+  it('cuenta solo los leídos de la lista que se le pasa', () => {
+    let s = emptyState();
+    s = setPosition(s, 'a/capitulo-1', 1);
+    s = setPosition(s, 'a/capitulo-2', 0.3);
+    s = setPosition(s, 'b/capitulo-1', 1);
+    expect(countRead(s, ['a/capitulo-1', 'a/capitulo-2', 'a/capitulo-3'])).toBe(1);
+  });
+});
+
+describe('discover', () => {
+  it('añade una vez y no duplica', () => {
+    let s = discover(emptyState(), 'secreta');
+    expect(s.discovered).toEqual(['secreta']);
+    s = discover(s, 'secreta');
+    expect(s.discovered).toEqual(['secreta']);
+    s = discover(s, 'otra');
+    expect(s.discovered).toEqual(['secreta', 'otra']);
+  });
+  it('funciona sobre un estado viejo sin el campo', () => {
+    const viejo = parseState(JSON.stringify({ version: 1, favorites: [], continueReading: {}, positions: {}, history: [] }));
+    expect(discover(viejo, 'x').discovered).toEqual(['x']);
   });
 });

@@ -4,7 +4,17 @@ const year = new Date().getFullYear();
 <footer class="site-footer">
   <div class="footer-inner">
     <span class="fbrand"><span class="sigil" aria-hidden="true">✦</span> Draveir</span>
-    <span>En el lugar donde brillan las estrellas · {year}</span>
+    {/* Un círculo de invocación en miniatura: el aro de arcanos reducido a
+        puntos y el sigilo del sitio en el centro. Sin rótulo, como corresponde a
+        algo que se encuentra. El nombre lo lleva en aria-label y en el tooltip. */}
+    <a class="finvoke" href="/invocacion" aria-label="Invocación" title="Invocación">
+      <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor">
+        <circle class="halo" cx="12" cy="12" r="9.2" stroke-width="1.1" stroke-dasharray="1.6 3" stroke-linecap="round" />
+        <path class="sig" fill="currentColor" stroke="none"
+              d="M12 4.4c.55 4.6 2.45 6.5 7.05 7.05C14.45 12 12.55 13.9 12 18.5c-.55-4.6-2.45-6.5-7.05-7.05C9.55 10.9 11.45 9 12 4.4Z" />
+      </svg>
+    </a>
+    <span class="fnote">En el lugar donde brillan las estrellas · {year}</span>
   </div>
 </footer>
 
@@ -17,13 +27,58 @@ const year = new Date().getFullYear();
     font-family: var(--font-sans);
     font-size: var(--step--1);
   }
+  /* Estrecho: el sigilo se va a su propia línea, centrado sobre las otras dos
+     piezas, que conservan sus extremos. Nada se reordena ni se aprieta. */
   .footer-inner {
     max-width: var(--page);
     margin-inline: auto;
-    display: flex;
-    align-items: center;
+    display: grid;
+    grid-template-areas:
+      'sigilo sigilo'
+      'marca  nota';
+    grid-template-columns: auto auto;
     justify-content: space-between;
+    align-items: center;
     gap: var(--space-3);
   }
-  .fbrand { color: var(--text); font-weight: 500; }
+  .fbrand { grid-area: marca; color: var(--text); font-weight: 500; }
+  .fnote { grid-area: nota; text-align: right; }
+  .finvoke { grid-area: sigilo; justify-self: center; }
+
+  /* Con sitio de sobra, las tres en una línea: el sigilo al centro exacto y las
+     otras dos donde siempre. */
+  @media (min-width: 40rem) {
+    .footer-inner {
+      grid-template-areas: 'marca sigilo nota';
+      grid-template-columns: 1fr auto 1fr;
+    }
+    .fbrand { justify-self: start; }
+    .fnote { justify-self: end; }
+  }
+
+  .finvoke {
+    display: inline-flex;
+    /* El icono mide 22px; el relleno lo lleva a los 44 de objetivo táctil sin
+       empujar el resto del pie, que es para lo que está el margen negativo. */
+    padding: 0.7rem;
+    margin: -0.7rem;
+    border-radius: 50%;
+    /* Latón, como el sigilo de la marca al otro extremo del pie: se reconocen
+       entre sí. Atenuado en reposo para no competir con el texto. */
+    color: var(--brass);
+    opacity: 0.7;
+  }
+  .finvoke svg { width: 22px; height: 22px; display: block; }
+  .finvoke:hover { opacity: 1; }
+  .finvoke .halo { transform-origin: center; transform-box: fill-box; }
+
+  /* El aro gira solo al pasar por encima: es la única pista de que ahí hay algo
+     que se invoca. */
+  @media (prefers-reduced-motion: no-preference) {
+    .finvoke { transition: opacity 0.2s ease; }
+    .finvoke:hover .halo { animation: girar 9s linear infinite; }
+    @keyframes girar {
+      to { transform: rotate(360deg); }
+    }
+  }
 </style>

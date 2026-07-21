@@ -30,6 +30,34 @@ export const EMBLEMS = [
 
 export type Emblem = (typeof EMBLEMS)[number];
 
+// Rótulo de cada arcano, con su numeral ya dentro: es una sola cosa y se pinta
+// tal cual. El slug pierde tildes y eñes, así que el nombre no puede derivarse
+// de él. Lo usa /invocacion; el resto del sitio muestra los emblemas sin nombre.
+export const EMBLEM_LABEL: Record<Emblem, string> = {
+  'el-loco': '0 · El Loco',
+  'el-mago': 'I · El Mago',
+  'la-sacerdotisa': 'II · La Sacerdotisa',
+  'la-emperatriz': 'III · La Emperatriz',
+  'el-emperador': 'IV · El Emperador',
+  'el-hierofante': 'V · El Hierofante',
+  'los-enamorados': 'VI · Los Enamorados',
+  'el-carro': 'VII · El Carro',
+  'la-fuerza': 'VIII · La Fuerza',
+  'el-ermitano': 'IX · El Ermitaño',
+  'la-rueda': 'X · La Rueda de la Fortuna',
+  'la-justicia': 'XI · La Justicia',
+  'el-colgado': 'XII · El Colgado',
+  'la-muerte': 'XIII · La Muerte',
+  'la-templanza': 'XIV · La Templanza',
+  'el-diablo': 'XV · El Diablo',
+  'la-torre': 'XVI · La Torre',
+  'la-estrella': 'XVII · La Estrella',
+  'la-luna': 'XVIII · La Luna',
+  'el-sol': 'XIX · El Sol',
+  'el-juicio': 'XX · El Juicio',
+  'el-mundo': 'XXI · El Mundo',
+};
+
 export const EMBLEM_STROKE: Record<Emblem, number> = {
   'el-loco': 1.86,
   'el-mago': 2.2,

@@ -3,10 +3,16 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import NovelCard from '../components/NovelCard.astro';
 import { novelHaystack } from '../lib/search';
 import { getReadableNovels } from '../lib/novels';
+import { isHidden } from '../lib/hidden';
 
-const novels = (await getReadableNovels()).sort((a, b) =>
+const todas = (await getReadableNovels({ includeHidden: true })).sort((a, b) =>
   a.data.title.localeCompare(b.data.title, 'es'),
 );
+const novels = todas.filter((n) => !isHidden(n.data.slug));
+// Las ocultas se imprimen en la misma rejilla pero escondidas: el script solo
+// las muestra si la consulta coincide con su título. No entran en el conteo de
+// los chips de formato — un número que subiera solo delataría que hay algo más.
+const hidden = todas.filter((n) => isHidden(n.data.slug));
 
 // Solo los formatos que existen en el catálogo: un chip que no filtra nada es
 // una promesa vacía. El orden es el de la taxonomía, de menor a mayor. El conteo
@@ -55,6 +61,18 @@ const formats = ORDER.filter((f) => countByFormat.has(f));
           searchText={novelHaystack(n.data)}
         />
       ))}
+      {hidden.map((n) => (
+        <NovelCard
+          slug={n.data.slug}
+          title={n.data.title}
+          synopsis={n.data.synopsis}
+          status={n.data.status}
+          categories={n.data.categories}
+          format={n.data.format}
+          searchText={n.data.title}
+          hidden
+        />
+      ))}
     </ul>
   </main>
 </BaseLayout>
@@ -93,7 +111,7 @@ const formats = ORDER.filter((f) => countByFormat.has(f));
 </style>
 
 <script>
-  import { normalizeText } from '../lib/search';
+  import { normalizeText, revealsHidden } from '../lib/search';
 
   const input = document.getElementById('search-input') as HTMLInputElement | null;
   const cards = Array.from(document.querySelectorAll<HTMLElement>('#search-results [data-search]'));
@@ -102,13 +120,18 @@ const formats = ORDER.filter((f) => countByFormat.has(f));
   let activeFormat: string | null = null;
 
   const apply = () => {
-    const terms = normalizeText(input?.value ?? '').trim().split(/\s+/).filter(Boolean);
+    const query = input?.value ?? '';
+    const terms = normalizeText(query).trim().split(/\s+/).filter(Boolean);
     let visible = 0;
     for (const card of cards) {
       const hay = card.dataset.search ?? '';
+      const enFormato = activeFormat === null || card.dataset.format === activeFormat;
+      // Las ocultas no responden a la búsqueda normal: hace falta llamarlas por
+      // su nombre. `hay` es solo el título en su caso, no la sinopsis.
       const match =
-        terms.every((t) => hay.includes(t)) &&
-        (activeFormat === null || card.dataset.format === activeFormat);
+        card.dataset.hidden !== undefined
+          ? revealsHidden(hay, query) && enFormato
+          : terms.every((t) => hay.includes(t)) && enFormato;
       card.style.display = match ? '' : 'none';
       if (match) visible += 1;
     }

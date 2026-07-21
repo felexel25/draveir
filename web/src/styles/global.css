@@ -11,6 +11,12 @@ html { color-scheme: dark light; }
 body {
   margin: 0;
   min-height: 100vh;
+  /* Sin esto, el min-height estira el body pero no reparte el sobrante: los
+     hijos se apilan en flujo y el hueco queda DEBAJO del pie, que se ve flotando
+     a media pantalla. Solo se notaba en las páginas cortas (biblioteca vacía,
+     404); el resto llena la ventana de sobra. */
+  display: flex;
+  flex-direction: column;
   background:
     radial-gradient(1100px 560px at 82% -8%, var(--glow), transparent 60%),
     var(--bg);
@@ -20,6 +26,10 @@ body {
   line-height: 1.65;
   -webkit-font-smoothing: antialiased;
 }
+
+/* El contenido se queda con el espacio sobrante y empuja el pie al fondo.
+   `1 0 auto` y no `1`: crece, pero nunca encoge por debajo de su contenido. */
+body > main { flex: 1 0 auto; }
 
 h1, h2, h3 {
   font-family: var(--font-display);
