@@ -3,16 +3,15 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import NovelCard from '../components/NovelCard.astro';
 import { novelHaystack } from '../lib/search';
 import { getReadableNovels } from '../lib/novels';
-import { isHidden } from '../lib/hidden';
 
 const todas = (await getReadableNovels({ includeHidden: true })).sort((a, b) =>
   a.data.title.localeCompare(b.data.title, 'es'),
 );
-const novels = todas.filter((n) => !isHidden(n.data.slug));
+const novels = todas.filter((n) => !n.data.hidden);
 // Las ocultas se imprimen en la misma rejilla pero escondidas: el script solo
 // las muestra si la consulta coincide con su título. No entran en el conteo de
 // los chips de formato — un número que subiera solo delataría que hay algo más.
-const hidden = todas.filter((n) => isHidden(n.data.slug));
+const hidden = todas.filter((n) => n.data.hidden);
 
 // Solo los formatos que existen en el catálogo: un chip que no filtra nada es
 // una promesa vacía. El orden es el de la taxonomía, de menor a mayor. El conteo

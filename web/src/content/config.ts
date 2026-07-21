@@ -31,6 +31,9 @@ const novels = defineCollection({
     categories: z.array(z.string()),
     tags: z.array(z.string()),
     featured: z.boolean(),
+    // Historias que no salen en ningún listado. Se sincroniza desde la propiedad
+    // "Oculta" de Notion. Default por si el JSON viene de un sync anterior.
+    hidden: z.boolean().default(false),
     saga: z.string().nullable().default(null),
     sagaOrder: z.number().nullable().default(null),
     phase: z.string().nullable().default(null),

@@ -4,7 +4,6 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import NovelCard from '../components/NovelCard.astro';
 import { novelHaystack } from '../lib/search';
 import { getReadableNovels } from '../lib/novels';
-import { isHidden } from '../lib/hidden';
 
 const novels = (await getReadableNovels()).sort((a, b) =>
   a.data.title.localeCompare(b.data.title, 'es'),
@@ -12,7 +11,7 @@ const novels = (await getReadableNovels()).sort((a, b) =>
 // Las ocultas que el lector haya destapado en /invocacion. La pestaña solo
 // existe si hay alguna oculta en el catálogo: sin ellas sería una promesa vacía.
 const ocultas = (await getReadableNovels({ includeHidden: true }))
-  .filter((n) => isHidden(n.data.slug))
+  .filter((n) => n.data.hidden)
   .sort((a, b) => a.data.title.localeCompare(b.data.title, 'es'));
 const chapterTitles: Record<string, string> = {};
 for (const c of await getCollection('chapters')) {

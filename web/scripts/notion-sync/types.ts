@@ -30,6 +30,7 @@ export interface NovelData {
   categories: string[];
   tags: string[];
   featured: boolean;
+  hidden: boolean;          // fuera de listados y sitemap; solo se llega buscándola o invocándola
   saga: string | null;      // slug de la saga, o null
   sagaOrder: number | null; // posición de lectura dentro de la saga
   phase: string | null;         // slug de la fase del calendario, o null
