@@ -6,10 +6,14 @@ import { coverGradient } from '../lib/covers';
 import { releaseLabel, nextChapterLabel, romanNumeral } from '../lib/calendar';
 import { isFresh } from '../lib/fresh';
 import { getReadableNovels } from '../lib/novels';
+import { isHidden } from '../lib/hidden';
 import { readingOrder } from '../lib/saga';
 import { slugify } from '../lib/slug';
 
-const novels = await getCollection('novels');
+// Todas las novelas menos las ocultas: el calendario muestra hasta las
+// anunciadas sin capítulos, pero una historia oculta no se anuncia en ningún
+// sitio — si apareciera aquí, dejaría de ser oculta.
+const novels = (await getCollection('novels')).filter((n) => !isHidden(n.data.slug));
 const chapters = await getCollection('chapters');
 const locked = await getCollection('lockedChapters');
 const phases = (await getCollection('phases')).sort((a, b) => a.data.order - b.data.order);

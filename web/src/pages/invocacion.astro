@@ -1,0 +1,312 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getReadableNovels } from '../lib/novels';
+import { isHidden } from '../lib/hidden';
+import { EMBLEMS, EMBLEM_BODY, EMBLEM_STROKE, EMBLEM_LABEL, pickEmblem } from '../lib/emblem';
+import { rarityOf } from '../lib/gacha';
+
+// El catálogo entero, ocultas incluidas: son el premio de la invocación. Viajan
+// en el JSON de esta página, así que quien mire el código las verá — es un
+// easter egg, no un candado (ver src/lib/hidden.ts).
+const novels = await getReadableNovels({ includeHidden: true });
+const catalog = novels.map((n) => {
+  const hidden = isHidden(n.data.slug);
+  const emblem = pickEmblem(n.data.slug);
+  return {
+    slug: n.data.slug,
+    title: n.data.title,
+    format: n.data.format,
+    hidden,
+    rarity: rarityOf(n.data.format, hidden),
+    emblem,
+    label: EMBLEM_LABEL[emblem],
+  };
+});
+
+// El anillo: los 22 arcanos repartidos en la circunferencia, cada uno mirando
+// hacia afuera como en un círculo de invocación. El índice de cada uno importa —
+// al terminar la tirada, el anillo se detiene con el arcano de tu carta arriba.
+const RADIO = 150;
+const ESCALA = 0.24;
+const arcanos = EMBLEMS.map((name, i) => ({
+  name,
+  angulo: (i * 360) / EMBLEMS.length,
+  body: EMBLEM_BODY[name],
+  stroke: EMBLEM_STROKE[name] / ESCALA,
+}));
+---
+
+<BaseLayout
+  title="Invocación — Draveir"
+  description="Deja que el azar elija tu próxima lectura."
+  noindex
+>
+  <main class="container" id="contenido">
+    <header class="intro">
+      <span class="eyebrow">Los arcanos deciden</span>
+      <h1>Invocación</h1>
+      <p>
+        Veintidós arcanos, un catálogo entero y ninguna preferencia. Gira el círculo y lee lo que
+        salga.
+      </p>
+    </header>
+
+    <div class="altar" id="altar">
+      <svg class="ring" id="ring" viewBox="0 0 400 400" aria-hidden="true">
+        <circle class="ring-line" cx="200" cy="200" r={RADIO} />
+        <circle class="ring-line inner" cx="200" cy="200" r={RADIO - 26} />
+        {arcanos.map((a) => (
+          <g
+            transform={`rotate(${a.angulo} 200 200) translate(200 ${200 - RADIO}) scale(${ESCALA}) translate(-50 -50)`}
+            fill="none"
+            stroke="currentColor"
+            stroke-width={a.stroke}
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            set:html={a.body}
+          />
+        ))}
+      </svg>
+      <div class="burst" id="burst" aria-hidden="true"></div>
+      <div class="cards" id="cards" aria-live="polite"></div>
+    </div>
+
+    <div class="actions">
+      <button type="button" class="btn btn-primary" id="pull-1">Invocar</button>
+      <button type="button" class="btn" id="pull-10">Invocar diez</button>
+    </div>
+    <p class="fine">Cada invocación es independiente. No hay nada que gastar.</p>
+
+    <noscript>
+      <p class="fine">
+        La invocación necesita JavaScript. Puedes ver el catálogo completo en
+        <a href="/historias">Historias</a>.
+      </p>
+    </noscript>
+  </main>
+
+  <script type="application/json" id="catalog" is:inline set:html={JSON.stringify(catalog)}></script>
+  <script>
+    import { parseState, discover, READER_KEY } from '../lib/reader';
+    import { pickMany, type GachaCard } from '../lib/gacha';
+    import { EMBLEM_BODY, EMBLEM_STROKE, EMBLEMS } from '../lib/emblem';
+
+    interface Carta extends GachaCard {
+      emblem: (typeof EMBLEMS)[number];
+      label: string;
+    }
+
+    const catalog: Carta[] = JSON.parse(document.getElementById('catalog')!.textContent!);
+    const visibles = catalog.filter((c) => !c.hidden);
+    const ocultas = catalog.filter((c) => c.hidden);
+
+    const ring = document.getElementById('ring')!;
+    const burst = document.getElementById('burst')!;
+    const cards = document.getElementById('cards')!;
+    const botones = [
+      document.getElementById('pull-1') as HTMLButtonElement,
+      document.getElementById('pull-10') as HTMLButtonElement,
+    ];
+
+    const quieto = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const sleep = (ms: number) => new Promise((r) => setTimeout(r, quieto ? 0 : ms));
+    const esc = (t: string) =>
+      t.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c] as string);
+
+    let girosAcumulados = 0;
+
+    const carta = (c: Carta, i: number) => `
+      <div class="card" data-rarity="${c.rarity}" style="--i:${i}">
+        <div class="card-inner">
+          <div class="face back"><span class="sigil">✦</span></div>
+          <div class="face front">
+            ${c.hidden ? '<span class="found">Historia oculta</span>' : ''}
+            <svg viewBox="0 0 100 100" fill="none" stroke="currentColor"
+                 stroke-width="${EMBLEM_STROKE[c.emblem]}" stroke-linecap="round"
+                 stroke-linejoin="round" aria-hidden="true">${EMBLEM_BODY[c.emblem]}</svg>
+            <span class="arcano">${esc(c.label)}</span>
+            <h2>${esc(c.title)}</h2>
+            <span class="rank" aria-label="${c.rarity} de 5">${'✦'.repeat(c.rarity)}</span>
+            <span class="fmt">${esc(c.format ?? 'Historia')}</span>
+            <a class="btn btn-primary" href="/novela/${c.slug}">Leer ahora</a>
+          </div>
+        </div>
+      </div>`;
+
+    async function invocar(n: number) {
+      for (const b of botones) b.disabled = true;
+      cards.innerHTML = '';
+      cards.classList.remove('shown');
+      burst.className = 'burst';
+
+      let s = parseState(localStorage.getItem(READER_KEY));
+      const sinDescubrir = ocultas.filter((c) => !s.discovered.includes(c.slug));
+      const sacadas = pickMany(visibles, sinDescubrir, Math.random, n) as Carta[];
+
+      // Lo mejor de la tanda manda en el espectáculo: el anillo se detiene en su
+      // arcano y el destello toma su color.
+      const mejor = sacadas.reduce((a, b) => (b.rarity > a.rarity ? b : a));
+
+      // El anillo se para con el arcano de la carta arriba. Los giros se acumulan
+      // para que siempre gire hacia adelante, nunca dé marcha atrás.
+      girosAcumulados += 3;
+      const indice = EMBLEMS.indexOf(mejor.emblem);
+      const grados = girosAcumulados * 360 - (indice * 360) / EMBLEMS.length;
+      ring.classList.add('casting');
+      (ring as unknown as HTMLElement).style.transform = `rotate(${grados}deg)`;
+      await sleep(1400);
+
+      ring.classList.remove('casting');
+      burst.className = `burst fire r${mejor.rarity}`;
+      await sleep(420);
+
+      cards.className = n > 1 ? 'cards many' : 'cards';
+      cards.innerHTML = sacadas.map(carta).join('');
+      requestAnimationFrame(() => cards.classList.add('shown'));
+
+      for (const c of sacadas) if (c.hidden) s = discover(s, c.slug);
+      localStorage.setItem(READER_KEY, JSON.stringify(s));
+
+      // Se reabre al terminar el volteo escalonado de la última carta.
+      await sleep(700 + sacadas.length * 90);
+      for (const b of botones) b.disabled = false;
+    }
+
+    botones[0].addEventListener('click', () => invocar(1));
+    botones[1].addEventListener('click', () => invocar(10));
+  </script>
+</BaseLayout>
+
+<style>
+  .intro { text-align: center; margin-bottom: var(--space-5); }
+  .intro p { color: var(--text-muted); max-width: 46ch; margin-inline: auto; }
+
+  /* El altar: el anillo de fondo y las cartas encima, en la misma celda. */
+  .altar {
+    display: grid;
+    place-items: center;
+    min-height: min(70vw, 420px);
+    margin-bottom: var(--space-5);
+  }
+  .altar > * { grid-area: 1 / 1; }
+
+  .ring {
+    width: min(88vw, 420px);
+    aspect-ratio: 1;
+    color: var(--brass);
+    opacity: 0.5;
+    /* Curva lenta al final: el anillo se posa en su arcano en vez de frenar en
+       seco, que es lo que hace legible dónde se detuvo. */
+    transition: transform 1.4s cubic-bezier(0.16, 0.9, 0.24, 1);
+  }
+  .ring-line { stroke: var(--brass); stroke-width: 1; fill: none; opacity: 0.55; }
+  .ring-line.inner { opacity: 0.3; stroke-dasharray: 3 9; }
+  .ring.casting { opacity: 1; }
+
+  /* El destello: un anillo que se expande y se apaga, teñido por la rareza. */
+  .burst {
+    width: min(88vw, 420px);
+    aspect-ratio: 1;
+    border-radius: 50%;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .burst.fire { animation: burst 0.6s ease-out; }
+  .burst.r3 { box-shadow: 0 0 0 2px var(--accent), 0 0 60px 10px var(--glow); }
+  .burst.r4 { box-shadow: 0 0 0 2px var(--brass), 0 0 70px 14px color-mix(in srgb, var(--brass) 35%, transparent); }
+  .burst.r5 {
+    background: conic-gradient(from 0deg, #e0607e, var(--warm), #7ed6a0, var(--accent), #b58ae0, #e0607e);
+    mask: radial-gradient(circle, transparent 62%, #000 64%, #000 70%, transparent 72%);
+  }
+  @keyframes burst {
+    from { opacity: 0.9; transform: scale(0.35); }
+    to { opacity: 0; transform: scale(1.15); }
+  }
+
+  .cards { display: grid; gap: var(--space-3); justify-items: center; }
+  .cards.many {
+    grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+    width: 100%;
+    max-width: 62rem;
+  }
+
+  .card { perspective: 900px; width: 100%; max-width: 17rem; }
+  .cards.many .card { max-width: none; }
+  .card-inner {
+    position: relative;
+    transform-style: preserve-3d;
+    /* El escalonado es lo que convierte diez cartas en una tanda y no en un
+       parpadeo: cada una entra 90 ms después de la anterior. */
+    transition: transform 0.6s cubic-bezier(0.3, 0.8, 0.3, 1) calc(var(--i) * 90ms);
+    aspect-ratio: 3 / 4.4;
+  }
+  .cards.shown .card-inner { transform: rotateY(180deg); }
+
+  .face {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    padding: var(--space-3);
+    text-align: center;
+    overflow: hidden;
+  }
+  .back {
+    background: linear-gradient(160deg, var(--surface-2), var(--surface));
+    border-color: color-mix(in srgb, var(--brass) 40%, var(--border));
+  }
+  .back .sigil { font-size: 1.8rem; opacity: 0.8; }
+  .front { transform: rotateY(180deg); }
+  .front svg { width: 40%; color: var(--brass); }
+
+  .arcano {
+    font-family: var(--font-sans);
+    font-size: var(--step--1);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .front h2 { font-size: var(--step-1); margin: 0; }
+  .cards.many .front h2 { font-size: var(--step--1); }
+  .cards.many .arcano, .cards.many .fmt, .cards.many .front .btn { display: none; }
+  .rank { color: var(--brass); letter-spacing: 0.2em; font-size: var(--step--1); }
+  .fmt { font-family: var(--font-sans); font-size: var(--step--1); color: var(--text-muted); }
+
+  /* El borde delata la rareza antes de leer nada. */
+  .card[data-rarity='4'] .front { border-color: color-mix(in srgb, var(--brass) 55%, var(--border)); }
+  .card[data-rarity='5'] .front {
+    border-color: transparent;
+    background:
+      linear-gradient(var(--surface), var(--surface)) padding-box,
+      conic-gradient(from 0deg, #e0607e, var(--warm), #7ed6a0, var(--accent), #b58ae0, #e0607e) border-box;
+    border: 2px solid transparent;
+  }
+  .found {
+    font-family: var(--font-sans);
+    font-size: var(--step--1);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--warm);
+  }
+
+  .actions { display: flex; gap: var(--space-3); justify-content: center; flex-wrap: wrap; }
+  .fine {
+    text-align: center;
+    color: var(--text-muted);
+    font-family: var(--font-sans);
+    font-size: var(--step--1);
+    margin-top: var(--space-3);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ring, .card-inner { transition: none; }
+    .burst.fire { animation: none; }
+  }
+</style>

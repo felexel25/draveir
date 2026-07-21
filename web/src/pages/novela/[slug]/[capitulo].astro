@@ -117,6 +117,13 @@ const isLastPublished =
       const bar = document.getElementById('reading-progress');
       const scrollMax = () => Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
 
+      // Un capítulo que cabe entero en la pantalla nunca dispara scroll, así que
+      // su posición se quedaría en 0 y jamás contaría como leído. Si no hay nada
+      // que desplazar, abrirlo es haberlo leído.
+      if (document.documentElement.scrollHeight <= window.innerHeight + 1) {
+        localStorage.setItem(READER_KEY, JSON.stringify(setPosition(opened, key, 1)));
+      }
+
       // Volver justo donde se quedó (si hay posición guardada).
       const saved = getPosition(opened, key);
       if (saved > 0) {

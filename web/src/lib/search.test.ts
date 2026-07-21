@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { normalizeText, novelMatchesQuery } from './search';
+import { normalizeText, novelMatchesQuery, revealsHidden } from './search';
 
 const novel = {
   title: 'El Heraldo Gris',
@@ -27,5 +27,18 @@ describe('novelMatchesQuery', () => {
   it('exige todos los términos (AND)', () => {
     expect(novelMatchesQuery(novel, 'heraldo magia')).toBe(true);
     expect(novelMatchesQuery(novel, 'heraldo dragones')).toBe(false);
+  });
+});
+
+describe('revealsHidden', () => {
+  it('destapa una oculta solo con su nombre', () => {
+    expect(revealsHidden('El Signo Blanco', 'signo blanco')).toBe(true);
+    expect(revealsHidden('El Signo Blanco', 'SIGNO')).toBe(true);
+    expect(revealsHidden('El Señor de la Niebla', 'senor')).toBe(true); // sin tildes
+  });
+  it('no la destapa con consultas cortas ni ajenas', () => {
+    expect(revealsHidden('El Signo Blanco', 'sig')).toBe(false);
+    expect(revealsHidden('El Signo Blanco', '')).toBe(false);
+    expect(revealsHidden('El Signo Blanco', 'fantasia')).toBe(false);
   });
 });
