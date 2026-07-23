@@ -341,6 +341,30 @@ const faces = [
 
   .face[hidden] { display: none; }
 
+  /* El giro en dos tiempos. No se montan las dos caras superpuestas en 3D: con
+     páginas largas, preserve-3d pelea con la altura del documento y con el
+     scroll. La cara visible gira hasta el canto, ahí se releva el contenido, y
+     la nueva termina el giro desde el otro lado — que es además lo que hace una
+     carta de verdad. Sólo hay una cara viva en cada instante. */
+  @media (prefers-reduced-motion: no-preference) {
+    .is-turning { animation: al-canto 0.3s ease-in forwards; }
+    .is-landing { animation: del-canto 0.3s ease-out; }
+    .flip .card { transition: opacity 0.2s ease, transform 0.2s ease; }
+    .flip:hover .card { transform: rotate(-4deg) translateY(-2px); }
+
+    /* La perspectiva va dentro del propio transform, no en una regla
+       `perspective` aparte: esa sólo afecta a los HIJOS del elemento, y aquí el
+       que gira es #caras. Sin esto el giro se ve plano, como un encogimiento. */
+    @keyframes al-canto {
+      from { transform: perspective(1600px) rotateY(0); }
+      to { transform: perspective(1600px) rotateY(90deg); opacity: 0.25; }
+    }
+    @keyframes del-canto {
+      from { transform: perspective(1600px) rotateY(-90deg); opacity: 0.25; }
+      to { transform: perspective(1600px) rotateY(0); }
+    }
+  }
+
   @media (max-width: 600px) {
     .plate.mini { width: 44px; }
     .timeline { padding-left: var(--space-4); }
@@ -360,20 +384,45 @@ const faces = [
 
     // `hidden` saca la cara del árbol de accesibilidad y del tabulador, así que
     // no hace falta marcarla `inert` por separado.
+    const MEDIO_GIRO = 300; // debe coincidir con la duración de al-canto/del-canto
+
     function mostrar(reverso: boolean) {
       for (const f of faces) f.hidden = f.dataset.face !== (reverso ? 'reverso' : 'frente');
       btn!.setAttribute('aria-pressed', String(reverso));
       label.textContent = reverso ? 'volver' : 'voltear la carta';
     }
 
+    const animar = matchMedia('(prefers-reduced-motion: no-preference)');
+    let girando = false;
+
+    function voltear(reverso: boolean) {
+      // Sin animación, o a mitad de un giro anterior: se releva y ya.
+      if (!animar.matches || girando) {
+        mostrar(reverso);
+        return;
+      }
+      girando = true;
+      caras!.classList.add('is-turning');
+      setTimeout(() => {
+        mostrar(reverso);
+        caras!.classList.replace('is-turning', 'is-landing');
+        setTimeout(() => {
+          caras!.classList.remove('is-landing');
+          girando = false;
+        }, MEDIO_GIRO);
+      }, MEDIO_GIRO);
+    }
+
     btn.addEventListener('click', () => {
       const reverso = btn.getAttribute('aria-pressed') !== 'true';
       // El hash hace el reverso compartible y devuelve el botón Atrás.
       history.pushState(null, '', reverso ? '#reverso' : location.pathname);
-      mostrar(reverso);
+      voltear(reverso);
     });
 
-    addEventListener('hashchange', () => mostrar(location.hash === '#reverso'));
+    addEventListener('hashchange', () => voltear(location.hash === '#reverso'));
+
+    // La carga inicial no gira: no ha habido volteo que animar.
     mostrar(location.hash === '#reverso');
   }
 </script>
