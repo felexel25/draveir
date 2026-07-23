@@ -25,14 +25,15 @@ compila en cada despliegue.
 
 ## Stack
 
-| | |
-| --- | --- |
-| **Framework** | [Astro](https://astro.build) |
-| **Hosting** | Cloudflare Pages |
-| **Tipografía** | Fraunces · Literata · Inter |
-| **Tests** | Vitest |
+<p>
+  <img alt="Astro" src="https://img.shields.io/badge/Astro-0a0e14?style=flat-square&logo=astro&logoColor=c9a66b">
+  <img alt="Cloudflare Pages" src="https://img.shields.io/badge/Cloudflare_Pages-0a0e14?style=flat-square&logo=cloudflarepages&logoColor=c9a66b">
+  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-0a0e14?style=flat-square&logo=typescript&logoColor=c9a66b">
+  <img alt="Vitest" src="https://img.shields.io/badge/Vitest-0a0e14?style=flat-square&logo=vitest&logoColor=c9a66b">
+</p>
 
-Sin framework de UI, sin CSS framework, sin estado global. HTML y CSS.
+Tipografía **Fraunces · Literata · Inter**. Sin framework de UI, sin CSS
+framework, sin estado global. HTML y CSS.
 
 ## Desarrollo
 
@@ -42,8 +43,9 @@ npm install
 npm run dev
 ```
 
-El contenido lo genera `npm run sync` desde Notion; sin credenciales, el
-sitio arranca vacío.
+> [!NOTE]
+> El contenido lo genera `npm run sync` desde Notion; sin credenciales, el
+> sitio arranca vacío.
 
 | Comando | |
 | --- | --- |
@@ -69,9 +71,10 @@ web/
 
 ## Licencia
 
-El código es de libre consulta. **Las historias no**: los textos, títulos,
-personajes y mundos publicados en draveir.com son obra propia y están
-protegidos por derechos de autor. Todos los derechos reservados.
+> [!IMPORTANT]
+> El código es de libre consulta. **Las historias no**: los textos, títulos,
+> personajes y mundos publicados en draveir.com son obra propia y están
+> protegidos por derechos de autor. Todos los derechos reservados.
 
 <div align="center">
 <br>
