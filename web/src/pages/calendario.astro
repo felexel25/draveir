@@ -149,7 +149,6 @@ const faces = [
             <path stroke-width="0.7" stroke-linecap="round" d="M11 33h12M13.5 37h7" />
           </svg>
         </span>
-        <span class="flip-label" id="flip-label">voltear la carta</span>
       </button>
     )}
 
@@ -322,25 +321,16 @@ const faces = [
      a la página entera, no a ninguna de las dos caras. */
   .flip {
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: var(--space-2);
     margin: 0 auto var(--space-5);
     padding: var(--space-2);
     background: none;
     border: 0;
     cursor: pointer;
     color: var(--brass);
-    font-family: var(--font-sans);
-    font-size: var(--step--1);
-    text-transform: uppercase;
-    letter-spacing: 0.18em;
   }
   .flip .card { display: block; opacity: 0.75; }
-  .flip svg { width: 34px; height: 48px; display: block; }
-  .flip-label { color: var(--text-muted); }
+  .flip svg { width: 26px; height: 37px; display: block; }
   .flip:hover .card { opacity: 1; }
-  .flip:hover .flip-label { color: var(--brass); }
 
   .face[hidden] { display: none; }
 
@@ -382,7 +372,6 @@ const faces = [
 
   // Sin fases de reverso no se pinta el botón: no hay nada que voltear.
   if (btn && caras) {
-    const label = btn.querySelector('.flip-label')!;
     const faces = Array.from(caras.querySelectorAll<HTMLElement>('.face'));
 
     const MEDIO_GIRO = 300; // debe coincidir con la duración de al-canto/del-canto
@@ -392,11 +381,10 @@ const faces = [
     function mostrar(reverso: boolean) {
       for (const f of faces) f.hidden = f.dataset.face !== (reverso ? 'reverso' : 'frente');
       btn!.setAttribute('aria-pressed', String(reverso));
-      label.textContent = reverso ? 'volver' : 'voltear la carta';
-      // El botón es lo primero dentro de <main>: quien salta el skip link llega
-      // aquí sin haber leído ningún título todavía. El nombre accesible repite el
-      // texto visible tal cual (para quien navega por voz) y le añade a dónde
-      // lleva, que el texto visible por sí solo no dice.
+      // La carta no lleva texto visible, así que el nombre accesible es lo único
+      // que anuncia el botón: dice la acción y a dónde lleva. El botón es lo
+      // primero dentro de <main>, así que quien salta el skip link llega aquí sin
+      // haber leído ningún título todavía.
       btn!.setAttribute(
         'aria-label',
         reverso ? 'volver: ver el calendario' : 'voltear la carta: ver El Reverso del calendario',
