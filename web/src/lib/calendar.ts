@@ -64,3 +64,28 @@ const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X',
 export function romanNumeral(n: number): string {
   return ROMAN[n] ?? String(n);
 }
+
+// Las secciones de una cara, numeradas. Se llama una vez por cara: cada una
+// descarta sus fases vacías y numera las que quedan desde I.
+export function numberSections<T extends { stories: unknown[] }>(
+  sections: T[],
+): (T & { number: number })[] {
+  return sections
+    // Una fase sin historias no promete nada: no genera sección.
+    .filter((s) => s.stories.length > 0)
+    // El número de fase se asigna DESPUÉS de descartar las vacías: si la fase 2
+    // se queda sin historias, no debe verse un salto de "Fase I" a "Fase III".
+    .map((s, i) => ({ ...s, number: i + 1 }));
+}
+
+// Las dos caras del calendario. Se reparten ANTES de construir las secciones
+// para que cada cara numere sus fases desde I por su cuenta: una fase de reverso
+// en mitad del orden no debe abrir un hueco en la numeración del frente.
+export function splitPhases<T extends { reverse: boolean }>(
+  phases: T[],
+): { front: T[]; back: T[] } {
+  return {
+    front: phases.filter((p) => !p.reverse),
+    back: phases.filter((p) => p.reverse),
+  };
+}

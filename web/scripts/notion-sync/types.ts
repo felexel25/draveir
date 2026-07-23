@@ -19,6 +19,9 @@ export interface PhaseData {
   name: string;
   description: string;
   order: number;
+  // La cara del calendario en la que vive. El frente promete fechas; el reverso
+  // sólo enseña lo que ya salió o va a salir sin día fijo.
+  reverse: boolean;
 }
 
 export interface NovelData {

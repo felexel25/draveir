@@ -3,7 +3,7 @@ import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Emblem from '../components/Emblem.astro';
 import { coverGradient } from '../lib/covers';
-import { releaseLabel, nextChapterLabel, romanNumeral } from '../lib/calendar';
+import { releaseLabel, nextChapterLabel, romanNumeral, splitPhases, numberSections } from '../lib/calendar';
 import { isFresh } from '../lib/fresh';
 import { getReadableNovels } from '../lib/novels';
 import { readingOrder } from '../lib/saga';
@@ -15,7 +15,9 @@ import { slugify } from '../lib/slug';
 const novels = (await getCollection('novels')).filter((n) => !n.data.hidden);
 const chapters = await getCollection('chapters');
 const locked = await getCollection('lockedChapters');
-const phases = (await getCollection('phases')).sort((a, b) => a.data.order - b.data.order);
+const phases = (await getCollection('phases'))
+  .sort((a, b) => a.data.order - b.data.order)
+  .map((p) => p.data);
 
 // Fecha del capítulo 1 de cada novela: el hecho que manda sobre la promesa.
 // El capítulo 1 puede venir de cualquiera de las dos colecciones — publicado
@@ -57,42 +59,67 @@ const freshNovels = new Set(
   chapters.filter((c) => isFresh(c.data.publishedAt, now)).map((c) => c.data.novelSlug),
 );
 
-const sections = phases
-  .map((p) => {
-    const ofPhase = novels.filter((n) => n.data.phase === p.data.slug);
-    const ordered = readingOrder(
-      ofPhase.map((n) => ({ slug: n.data.slug, title: n.data.title, order: n.data.phaseOrder })),
-    );
-    const bySlug = new Map(ofPhase.map((n) => [n.data.slug, n.data]));
-    return {
-      phase: p.data,
-      stories: ordered.map((o) => {
-        const n = bySlug.get(o.slug)!;
-        return {
-          slug: n.slug,
-          title: n.title,
-          status: n.status,
-          categories: n.categories,
-          readable: readable.has(n.slug),
-          isNew: freshNovels.has(n.slug),
-          date: releaseLabel({
-            firstChapterAt: firstChapterAt.get(n.slug) ?? null,
-            releaseWindow: n.releaseWindow,
-          }),
-          next: (() => {
-            const n2 = nextChapter.get(n.slug);
-            const label = n2 ? nextChapterLabel(n2.at) : null;
-            return label ? `Cap. ${n2!.number} · ${label}` : null;
-          })(),
-        };
-      }),
-    };
-  })
-  // Una fase sin historias no promete nada: no genera sección.
-  .filter((s) => s.stories.length > 0)
-  // El número de fase se asigna DESPUÉS de descartar las vacías: si la fase 2
-  // se queda sin historias, no debe verse un salto de "Fase I" a "Fase III".
-  .map((s, i) => ({ ...s, number: i + 1 }));
+// Las secciones de una cara. Se llama una vez por cara: cada una descarta sus
+// fases vacías y numera las que quedan desde I.
+function buildSections(fases: typeof phases) {
+  const sections = fases
+    .map((p) => {
+      const ofPhase = novels.filter((n) => n.data.phase === p.slug);
+      const ordered = readingOrder(
+        ofPhase.map((n) => ({ slug: n.data.slug, title: n.data.title, order: n.data.phaseOrder })),
+      );
+      const bySlug = new Map(ofPhase.map((n) => [n.data.slug, n.data]));
+      return {
+        phase: p,
+        stories: ordered.map((o) => {
+          const n = bySlug.get(o.slug)!;
+          return {
+            slug: n.slug,
+            title: n.title,
+            status: n.status,
+            categories: n.categories,
+            readable: readable.has(n.slug),
+            isNew: freshNovels.has(n.slug),
+            date: releaseLabel({
+              firstChapterAt: firstChapterAt.get(n.slug) ?? null,
+              releaseWindow: n.releaseWindow,
+            }),
+            next: (() => {
+              const n2 = nextChapter.get(n.slug);
+              const label = n2 ? nextChapterLabel(n2.at) : null;
+              return label ? `Cap. ${n2!.number} · ${label}` : null;
+            })(),
+          };
+        }),
+      };
+    });
+  return numberSections(sections);
+}
+
+const { front, back } = splitPhases(phases);
+
+// Las dos caras del calendario, misma forma y distinta promesa. El reverso sólo
+// existe si alguna fase suya tiene historias: sin contenido, la página se
+// comporta exactamente como antes de que existiera este feature — ni cara
+// trasera, ni botón.
+const faces = [
+  {
+    id: 'frente',
+    reverse: false,
+    eyebrow: 'Calendario',
+    title: 'Lo que viene',
+    lead: 'Las historias por fases, en orden de publicación.',
+    sections: buildSections(front),
+  },
+  {
+    id: 'reverso',
+    reverse: true,
+    eyebrow: 'El Reverso',
+    title: 'Lo que no estaba',
+    lead: 'Historias que salen cuando salen.',
+    sections: buildSections(back),
+  },
+].filter((f) => !f.reverse || f.sections.length > 0);
 ---
 
 <BaseLayout
@@ -100,51 +127,86 @@ const sections = phases
   description="Todo lo que viene y todo lo que ya salió, fase por fase."
 >
   <main class="container wide" id="contenido">
-    <div class="page-head">
-      <span class="eyebrow">Calendario</span>
-      <h1>Lo que viene</h1>
-      <p class="lead">Las historias por fases, en orden de publicación.</p>
-    </div>
+    {faces.length > 1 && (
+      <button
+        class="flip"
+        id="flip"
+        type="button"
+        aria-controls="caras"
+        aria-pressed="false"
+        aria-label="voltear la carta: ver El Reverso del calendario"
+      >
+        {/* El dorso de una carta con el sigilo de la casa: el objeto que se
+            voltea es el propio botón, así la acción se anticipa sola. */}
+        <span class="card" aria-hidden="true">
+          <svg viewBox="0 0 34 48" fill="none" stroke="currentColor">
+            <rect x="1.5" y="1.5" width="31" height="45" rx="3" stroke-width="1.2" />
+            <rect x="5" y="5" width="24" height="38" rx="1.5" stroke-width="0.7" stroke-dasharray="2 3" />
+            <g transform="translate(17 20) scale(0.72) translate(-12 -12)">
+              <path fill="currentColor" stroke="none"
+                    d="M12 4.4c.55 4.6 2.45 6.5 7.05 7.05C14.45 12 12.55 13.9 12 18.5c-.55-4.6-2.45-6.5-7.05-7.05C9.55 10.9 11.45 9 12 4.4Z" />
+            </g>
+            <path stroke-width="0.7" stroke-linecap="round" d="M11 33h12M13.5 37h7" />
+          </svg>
+        </span>
+      </button>
+    )}
 
-    {sections.length === 0 && <p class="empty">Aún no hay fases publicadas.</p>}
+    <div id="caras">
+      {faces.map((face, i) => (
+        <div class="face" data-face={face.id} hidden={i > 0}>
+          <div class="page-head">
+            <span class="eyebrow">{face.eyebrow}</span>
+            <h1>{face.title}</h1>
+            <p class="lead">{face.lead}</p>
+          </div>
 
-    {sections.map((s) => (
-      <section class="phase">
-        <div class="phase-head">
-          <span class="phase-num">Fase {romanNumeral(s.number)}</span>
-          <h2>{s.phase.name}</h2>
-          <p class="phase-count">
-            {s.stories.length} {s.stories.length === 1 ? 'historia' : 'historias'}
-          </p>
-          {s.phase.description && <p class="phase-desc">{s.phase.description}</p>}
-        </div>
-        <ol class="timeline">
-          {s.stories.map((story) => (
-            <li class={story.readable ? 'entry' : 'entry is-soon'}>
-              <span class="node" aria-hidden="true">✦</span>
-              <span class="plate mini" style={`background:${coverGradient(story.categories)}`} aria-hidden="true">
-                <Emblem slug={story.slug} />
-              </span>
-              <div class="entry-body">
-                <h3>
-                  {story.readable
-                    ? <a href={`/novela/${story.slug}`}>{story.title}</a>
-                    : story.title}
-                </h3>
-                <p class="entry-meta">
-                  {story.isNew && <span class="new-badge">Nuevo</span>}
-                  {story.date && <span class="when">{story.date}</span>}
-                  {story.readable
-                    ? story.status && <a class="status" data-status={slugify(story.status)} href={`/estado/${slugify(story.status)}`}>{story.status}</a>
-                    : <span class="soon">Próximamente</span>}
+          {face.sections.length === 0 && <p class="empty">Aún no hay fases publicadas.</p>}
+
+          {face.sections.map((s) => (
+            <section class="phase">
+              <div class="phase-head">
+                {/* El reverso no numera sus fases: numerarlas sería prometer un
+                    orden y un ritmo, que es justo de lo que huye esta cara. */}
+                {!face.reverse && <span class="phase-num">Fase {romanNumeral(s.number)}</span>}
+                <h2>{s.phase.name}</h2>
+                <p class="phase-count">
+                  {s.stories.length} {s.stories.length === 1 ? 'historia' : 'historias'}
                 </p>
-                {story.next && <p class="entry-next">{story.next}</p>}
+                {s.phase.description && <p class="phase-desc">{s.phase.description}</p>}
               </div>
-            </li>
+              <ol class={face.reverse ? 'timeline is-reverse' : 'timeline'}>
+                {s.stories.map((story) => (
+                  <li class={story.readable ? 'entry' : 'entry is-soon'}>
+                    <span class="node" aria-hidden="true">✦</span>
+                    <span class="plate mini" style={`background:${coverGradient(story.categories)}`} aria-hidden="true">
+                      <Emblem slug={story.slug} />
+                    </span>
+                    <div class="entry-body">
+                      <h3>
+                        {story.readable
+                          ? <a href={`/novela/${story.slug}`}>{story.title}</a>
+                          : story.title}
+                      </h3>
+                      <p class="entry-meta">
+                        {story.isNew && <span class="new-badge">Nuevo</span>}
+                        {/* El reverso no lleva fechas — el estado sí: es un hecho
+                            sobre la historia, no una promesa de cuándo sale. */}
+                        {!face.reverse && story.date && <span class="when">{story.date}</span>}
+                        {story.readable
+                          ? story.status && <a class="status" data-status={slugify(story.status)} href={`/estado/${slugify(story.status)}`}>{story.status}</a>
+                          : <span class="soon">Próximamente</span>}
+                      </p>
+                      {!face.reverse && story.next && <p class="entry-next">{story.next}</p>}
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </section>
           ))}
-        </ol>
-      </section>
-    ))}
+        </div>
+      ))}
+    </div>
   </main>
 </BaseLayout>
 
@@ -249,6 +311,53 @@ const sections = phases
     color: var(--warm);
   }
 
+  /* La carta invertida: el mismo arcano leído por su sombra. Va con :global
+     porque el SVG lo pinta <Emblem>, y los estilos de esta página están
+     scopeados — sin él, el selector no alcanzaría al emblema (es la misma razón
+     por la que `.plate .emblem` vive en global.css). */
+  .timeline.is-reverse :global(.emblem) { transform: rotate(180deg); }
+
+  /* El botón vive centrado sobre el título, no dentro de la cabecera: pertenece
+     a la página entera, no a ninguna de las dos caras. */
+  .flip {
+    display: flex;
+    margin: 0 auto var(--space-5);
+    padding: var(--space-2);
+    background: none;
+    border: 0;
+    cursor: pointer;
+    color: var(--brass);
+  }
+  .flip .card { display: block; opacity: 0.75; }
+  .flip svg { width: 26px; height: 37px; display: block; }
+  .flip:hover .card { opacity: 1; }
+
+  .face[hidden] { display: none; }
+
+  /* El giro en dos tiempos. No se montan las dos caras superpuestas en 3D: con
+     páginas largas, preserve-3d pelea con la altura del documento y con el
+     scroll. La cara visible gira hasta el canto, ahí se releva el contenido, y
+     la nueva termina el giro desde el otro lado — que es además lo que hace una
+     carta de verdad. Sólo hay una cara viva en cada instante. */
+  @media (prefers-reduced-motion: no-preference) {
+    .is-turning { animation: al-canto 0.3s ease-in forwards; }
+    .is-landing { animation: del-canto 0.3s ease-out; }
+    .flip .card { transition: opacity 0.2s ease, transform 0.2s ease; }
+    .flip:hover .card { transform: rotate(-4deg) translateY(-2px); }
+
+    /* La perspectiva va dentro del propio transform, no en una regla
+       `perspective` aparte: esa sólo afecta a los HIJOS del elemento, y aquí el
+       que gira es #caras. Sin esto el giro se ve plano, como un encogimiento. */
+    @keyframes al-canto {
+      from { transform: perspective(1600px) rotateY(0); }
+      to { transform: perspective(1600px) rotateY(90deg); opacity: 0.25; }
+    }
+    @keyframes del-canto {
+      from { transform: perspective(1600px) rotateY(-90deg); opacity: 0.25; }
+      to { transform: perspective(1600px) rotateY(0); }
+    }
+  }
+
   @media (max-width: 600px) {
     .plate.mini { width: 44px; }
     .timeline { padding-left: var(--space-4); }
@@ -256,3 +365,75 @@ const sections = phases
     .entry { gap: var(--space-3); }
   }
 </style>
+
+<script>
+  const btn = document.getElementById('flip');
+  const caras = document.getElementById('caras');
+
+  // Sin fases de reverso no se pinta el botón: no hay nada que voltear.
+  if (btn && caras) {
+    const faces = Array.from(caras.querySelectorAll<HTMLElement>('.face'));
+
+    const MEDIO_GIRO = 300; // debe coincidir con la duración de al-canto/del-canto
+
+    // `hidden` saca la cara del árbol de accesibilidad y del tabulador, así que
+    // no hace falta marcarla `inert` por separado.
+    function mostrar(reverso: boolean) {
+      for (const f of faces) f.hidden = f.dataset.face !== (reverso ? 'reverso' : 'frente');
+      btn!.setAttribute('aria-pressed', String(reverso));
+      // La carta no lleva texto visible, así que el nombre accesible es lo único
+      // que anuncia el botón: dice la acción y a dónde lleva. El botón es lo
+      // primero dentro de <main>, así que quien salta el skip link llega aquí sin
+      // haber leído ningún título todavía.
+      btn!.setAttribute(
+        'aria-label',
+        reverso ? 'volver: ver el calendario' : 'voltear la carta: ver El Reverso del calendario',
+      );
+    }
+
+    const animar = matchMedia('(prefers-reduced-motion: no-preference)');
+    let girando = false;
+    // El objetivo del giro en curso: si llega un nuevo destino mientras se
+    // está girando, la rama síncrona de abajo lo aplica ya, pero el
+    // setTimeout del giro en marcha sigue vivo (no se cancela) y también va a
+    // llamar a mostrar(). Si leyera su `reverso` cerrado por closure, pisaría
+    // ese destino nuevo con el viejo. Leyendo esta variable compartida, ambas
+    // llamadas terminan de acuerdo. Se siembra con el hash de entrada para que
+    // un `/calendario#reverso` directo empiece de acuerdo consigo mismo.
+    let objetivo = location.hash === '#reverso';
+
+    function voltear(reverso: boolean) {
+      objetivo = reverso;
+      // Sin animación, o a mitad de un giro anterior: se releva y ya.
+      if (!animar.matches || girando) {
+        mostrar(reverso);
+        return;
+      }
+      girando = true;
+      caras!.classList.add('is-turning');
+      setTimeout(() => {
+        mostrar(objetivo);
+        caras!.classList.replace('is-turning', 'is-landing');
+        setTimeout(() => {
+          caras!.classList.remove('is-landing');
+          girando = false;
+        }, MEDIO_GIRO);
+      }, MEDIO_GIRO);
+    }
+
+    btn.addEventListener('click', () => {
+      // El destino en curso manda sobre aria-pressed: durante un giro, aria-pressed
+      // todavía dice dónde estábamos, no a dónde vamos.
+      const reverso = !objetivo;
+      // El hash hace el reverso compartible y devuelve el botón Atrás. La query
+      // sobrevive al volteo: no es asunto de esta página borrarla.
+      history.pushState(null, '', reverso ? '#reverso' : location.pathname + location.search);
+      voltear(reverso);
+    });
+
+    addEventListener('hashchange', () => voltear(location.hash === '#reverso'));
+
+    // La carga inicial no gira: no ha habido volteo que animar.
+    mostrar(objetivo);
+  }
+</script>

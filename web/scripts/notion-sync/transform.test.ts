@@ -233,6 +233,7 @@ describe('parsePhase', () => {
       name: 'El despertar',
       description: 'Donde todo empieza.',
       order: 1,
+      reverse: false,
     });
   });
 
@@ -242,6 +243,20 @@ describe('parsePhase', () => {
       properties: { ...phasePage.properties, 'Slug': { rich_text: [] } },
     };
     expect(parsePhase(noSlug).slug).toBe('el-despertar');
+  });
+
+  it('una fase marcada como Reverso vive en la otra cara del calendario', () => {
+    const delReverso: NotionPage = {
+      id: 'p',
+      properties: { ...phasePage.properties, 'Reverso': { checkbox: true } },
+    };
+    expect(parsePhase(delReverso).reverse).toBe(true);
+  });
+
+  // La propiedad puede no existir todavía en Notion: una fase sin ella es del
+  // frente, que es donde han vivido todas hasta ahora.
+  it('sin la propiedad Reverso, la fase es del frente', () => {
+    expect(parsePhase(phasePage).reverse).toBe(false);
   });
 });
 

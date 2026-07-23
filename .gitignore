@@ -4,6 +4,13 @@ dist/
 .env
 .dev.vars
 
+# Notas de trabajo (specs, planes): se quedan en la máquina del autor.
+# .claude/ y .superpowers/ ya los ignora un ignore global de la máquina, pero
+# eso no protege a otra máquina ni al CI: se listan aquí también.
+docs/
+.claude/
+.superpowers/
+
 # Contenido generado por el sync (build-time)
 web/src/content/sagas/
 web/src/content/phases/
@@ -13,3 +20,21 @@ web/src/content/lockedChapters/
 web/.kv-bulk.json
 web/.env
 web/.dev.vars
+
+# Variantes de entorno local (el .env.example sí se versiona: no lo cubras
+# con un patrón .env* amplio).
+.env.local
+.env.*.local
+
+# Estado local de Wrangler (Cloudflare) al probar Functions/KV en la máquina.
+.wrangler/
+
+# Editores y sistema operativo: se cuelan por máquina, no pertenecen al repo.
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs y build info sueltos.
+*.log
+*.tsbuildinfo
