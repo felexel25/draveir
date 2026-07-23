@@ -64,3 +64,15 @@ const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X',
 export function romanNumeral(n: number): string {
   return ROMAN[n] ?? String(n);
 }
+
+// Las dos caras del calendario. Se reparten ANTES de construir las secciones
+// para que cada cara numere sus fases desde I por su cuenta: una fase de reverso
+// en mitad del orden no debe abrir un hueco en la numeración del frente.
+export function splitPhases<T extends { reverse: boolean }>(
+  phases: T[],
+): { front: T[]; back: T[] } {
+  return {
+    front: phases.filter((p) => !p.reverse),
+    back: phases.filter((p) => p.reverse),
+  };
+}

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { releaseLabel, nextChapterLabel, romanNumeral } from './calendar';
+import { releaseLabel, nextChapterLabel, romanNumeral, splitPhases } from './calendar';
 
 describe('releaseLabel', () => {
   it('con capítulos publicados, la fecha del primero manda', () => {
@@ -65,5 +65,39 @@ describe('romanNumeral', () => {
     expect(romanNumeral(4)).toBe('IV');
     expect(romanNumeral(9)).toBe('IX');
     expect(romanNumeral(14)).toBe('XIV');
+  });
+});
+
+describe('splitPhases', () => {
+  const fase = (slug: string, reverse: boolean) => ({ slug, reverse });
+
+  it('separa las fases del frente de las del reverso', () => {
+    const { front, back } = splitPhases([
+      fase('el-primer-contacto', false),
+      fase('lo-que-no-se-dijo', true),
+      fase('los-que-no-cabian', false),
+    ]);
+    expect(front.map((p) => p.slug)).toEqual(['el-primer-contacto', 'los-que-no-cabian']);
+    expect(back.map((p) => p.slug)).toEqual(['lo-que-no-se-dijo']);
+  });
+
+  // La numeración romana de cada cara sale de la posición en su propio array.
+  // Si una fase de reverso intercalada dejara un hueco, el frente saltaría de
+  // "Fase I" a "Fase III" — el mismo bug que ya evitamos con las fases vacías.
+  it('una fase de reverso intercalada no abre hueco en el frente', () => {
+    const { front } = splitPhases([
+      fase('a', false),
+      fase('r1', true),
+      fase('b', false),
+      fase('r2', true),
+      fase('c', false),
+    ]);
+    expect(front.map((p) => p.slug)).toEqual(['a', 'b', 'c']);
+  });
+
+  it('sin fases de reverso, la cara trasera queda vacía', () => {
+    const { front, back } = splitPhases([fase('a', false), fase('b', false)]);
+    expect(front).toHaveLength(2);
+    expect(back).toEqual([]);
   });
 });

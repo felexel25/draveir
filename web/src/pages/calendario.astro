@@ -3,7 +3,7 @@ import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Emblem from '../components/Emblem.astro';
 import { coverGradient } from '../lib/covers';
-import { releaseLabel, nextChapterLabel, romanNumeral } from '../lib/calendar';
+import { releaseLabel, nextChapterLabel, romanNumeral, splitPhases } from '../lib/calendar';
 import { isFresh } from '../lib/fresh';
 import { getReadableNovels } from '../lib/novels';
 import { readingOrder } from '../lib/saga';
@@ -15,7 +15,9 @@ import { slugify } from '../lib/slug';
 const novels = (await getCollection('novels')).filter((n) => !n.data.hidden);
 const chapters = await getCollection('chapters');
 const locked = await getCollection('lockedChapters');
-const phases = (await getCollection('phases')).sort((a, b) => a.data.order - b.data.order);
+const phases = (await getCollection('phases'))
+  .sort((a, b) => a.data.order - b.data.order)
+  .map((p) => p.data);
 
 // Fecha del capítulo 1 de cada novela: el hecho que manda sobre la promesa.
 // El capítulo 1 puede venir de cualquiera de las dos colecciones — publicado
@@ -57,42 +59,49 @@ const freshNovels = new Set(
   chapters.filter((c) => isFresh(c.data.publishedAt, now)).map((c) => c.data.novelSlug),
 );
 
-const sections = phases
-  .map((p) => {
-    const ofPhase = novels.filter((n) => n.data.phase === p.data.slug);
-    const ordered = readingOrder(
-      ofPhase.map((n) => ({ slug: n.data.slug, title: n.data.title, order: n.data.phaseOrder })),
-    );
-    const bySlug = new Map(ofPhase.map((n) => [n.data.slug, n.data]));
-    return {
-      phase: p.data,
-      stories: ordered.map((o) => {
-        const n = bySlug.get(o.slug)!;
-        return {
-          slug: n.slug,
-          title: n.title,
-          status: n.status,
-          categories: n.categories,
-          readable: readable.has(n.slug),
-          isNew: freshNovels.has(n.slug),
-          date: releaseLabel({
-            firstChapterAt: firstChapterAt.get(n.slug) ?? null,
-            releaseWindow: n.releaseWindow,
-          }),
-          next: (() => {
-            const n2 = nextChapter.get(n.slug);
-            const label = n2 ? nextChapterLabel(n2.at) : null;
-            return label ? `Cap. ${n2!.number} · ${label}` : null;
-          })(),
-        };
-      }),
-    };
-  })
-  // Una fase sin historias no promete nada: no genera sección.
-  .filter((s) => s.stories.length > 0)
-  // El número de fase se asigna DESPUÉS de descartar las vacías: si la fase 2
-  // se queda sin historias, no debe verse un salto de "Fase I" a "Fase III".
-  .map((s, i) => ({ ...s, number: i + 1 }));
+// Las secciones de una cara. Se llama una vez por cara: cada una descarta sus
+// fases vacías y numera las que quedan desde I.
+function buildSections(caras: typeof phases) {
+  return caras
+    .map((p) => {
+      const ofPhase = novels.filter((n) => n.data.phase === p.slug);
+      const ordered = readingOrder(
+        ofPhase.map((n) => ({ slug: n.data.slug, title: n.data.title, order: n.data.phaseOrder })),
+      );
+      const bySlug = new Map(ofPhase.map((n) => [n.data.slug, n.data]));
+      return {
+        phase: p,
+        stories: ordered.map((o) => {
+          const n = bySlug.get(o.slug)!;
+          return {
+            slug: n.slug,
+            title: n.title,
+            status: n.status,
+            categories: n.categories,
+            readable: readable.has(n.slug),
+            isNew: freshNovels.has(n.slug),
+            date: releaseLabel({
+              firstChapterAt: firstChapterAt.get(n.slug) ?? null,
+              releaseWindow: n.releaseWindow,
+            }),
+            next: (() => {
+              const n2 = nextChapter.get(n.slug);
+              const label = n2 ? nextChapterLabel(n2.at) : null;
+              return label ? `Cap. ${n2!.number} · ${label}` : null;
+            })(),
+          };
+        }),
+      };
+    })
+    // Una fase sin historias no promete nada: no genera sección.
+    .filter((s) => s.stories.length > 0)
+    // El número de fase se asigna DESPUÉS de descartar las vacías: si la fase 2
+    // se queda sin historias, no debe verse un salto de "Fase I" a "Fase III".
+    .map((s, i) => ({ ...s, number: i + 1 }));
+}
+
+const { front } = splitPhases(phases);
+const sections = buildSections(front);
 ---
 
 <BaseLayout
