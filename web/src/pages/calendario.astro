@@ -394,8 +394,16 @@ const faces = [
 
     const animar = matchMedia('(prefers-reduced-motion: no-preference)');
     let girando = false;
+    // El objetivo del giro en curso: si llega un nuevo destino mientras se
+    // está girando, la rama síncrona de abajo lo aplica ya, pero el
+    // setTimeout del giro en marcha sigue vivo (no se cancela) y también va a
+    // llamar a mostrar(). Si leyera su `reverso` cerrado por closure, pisaría
+    // ese destino nuevo con el viejo. Leyendo esta variable compartida, ambas
+    // llamadas terminan de acuerdo.
+    let objetivo = false;
 
     function voltear(reverso: boolean) {
+      objetivo = reverso;
       // Sin animación, o a mitad de un giro anterior: se releva y ya.
       if (!animar.matches || girando) {
         mostrar(reverso);
@@ -404,7 +412,7 @@ const faces = [
       girando = true;
       caras!.classList.add('is-turning');
       setTimeout(() => {
-        mostrar(reverso);
+        mostrar(objetivo);
         caras!.classList.replace('is-turning', 'is-landing');
         setTimeout(() => {
           caras!.classList.remove('is-landing');
