@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 440" role="img" aria-label="Draveir — Fantasía, ciencia ficción y terror cósmico">
+  <defs>
+    <radialGradient id="sky" cx="50%" cy="42%" r="72%">
+      <stop offset="0%" stop-color="#141d2c"/>
+      <stop offset="60%" stop-color="#0c1220"/>
+      <stop offset="100%" stop-color="#080b11"/>
+    </radialGradient>
+    <radialGradient id="halo" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#d8b878" stop-opacity="0.28"/>
+      <stop offset="55%" stop-color="#8aa6e6" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#8aa6e6" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="brass" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#e6c98c"/>
+      <stop offset="100%" stop-color="#a8843f"/>
+    </linearGradient>
+    <linearGradient id="rule" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#c9a66b" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#c9a66b" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="#c9a66b" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Superficie: la misma pizarra y el mismo borde de las tarjetas del sitio. -->
+  <rect x="1" y="1" width="1198" height="438" rx="16" fill="url(#sky)" stroke="#26303f" stroke-width="1.5"/>
+
+  <!-- Estrellas: el sigilo ✦ de la marca, disperso y tenue, como el fondo del sitio. -->
+  <g fill="#c9a66b">
+    <g transform="translate(190 96) scale(1.1) translate(-12 -12)" opacity="0.5"><path d="M12 4.4c.55 4.6 2.45 6.5 7.05 7.05C14.45 12 12.55 13.9 12 18.5c-.55-4.6-2.45-6.5-7.05-7.05C9.55 10.9 11.45 9 12 4.4Z"/></g>
+    <g transform="translate(1010 130) scale(0.8) translate(-12 -12)" opacity="0.4"><path d="M12 4.4c.55 4.6 2.45 6.5 7.05 7.05C14.45 12 12.55 13.9 12 18.5c-.55-4.6-2.45-6.5-7.05-7.05C9.55 10.9 11.45 9 12 4.4Z"/></g>
+    <g transform="translate(950 330) scale(0.9) translate(-12 -12)" opacity="0.35"><path d="M12 4.4c.55 4.6 2.45 6.5 7.05 7.05C14.45 12 12.55 13.9 12 18.5c-.55-4.6-2.45-6.5-7.05-7.05C9.55 10.9 11.45 9 12 4.4Z"/></g>
+  </g>
+  <g fill="#8aa6e6">
+    <g transform="translate(255 300) scale(0.7) translate(-12 -12)" opacity="0.45"><path d="M12 4.4c.55 4.6 2.45 6.5 7.05 7.05C14.45 12 12.55 13.9 12 18.5c-.55-4.6-2.45-6.5-7.05-7.05C9.55 10.9 11.45 9 12 4.4Z"/></g>
+    <g transform="translate(1040 250) scale(0.55) translate(-12 -12)" opacity="0.4"><path d="M12 4.4c.55 4.6 2.45 6.5 7.05 7.05C14.45 12 12.55 13.9 12 18.5c-.55-4.6-2.45-6.5-7.05-7.05C9.55 10.9 11.45 9 12 4.4Z"/></g>
+    <g transform="translate(160 250) scale(0.5) translate(-12 -12)" opacity="0.35"><path d="M12 4.4c.55 4.6 2.45 6.5 7.05 7.05C14.45 12 12.55 13.9 12 18.5c-.55-4.6-2.45-6.5-7.05-7.05C9.55 10.9 11.45 9 12 4.4Z"/></g>
+  </g>
+  <g fill="#eceff5" opacity="0.5">
+    <circle cx="320" cy="120" r="1.4"/>
+    <circle cx="880" cy="95" r="1.2"/>
+    <circle cx="1080" cy="360" r="1.3"/>
+    <circle cx="130" cy="360" r="1.2"/>
+    <circle cx="720" cy="360" r="1.1"/>
+  </g>
+
+  <!-- El astro: el emblema "La Fuerza" del favicon, un anillo de latón con su halo. -->
+  <circle cx="600" cy="120" r="120" fill="url(#halo)"/>
+  <g transform="translate(600 120) scale(1.9) translate(-50 -50)" fill="none" stroke="url(#brass)" stroke-width="0.95" stroke-linecap="round" stroke-linejoin="round">
+    <g transform="translate(68 50) rotate(90)"><rect x="-9" y="-5" width="18" height="10" rx="5"/><rect x="-5.6" y="-2" width="11.2" height="4" rx="2"/></g>
+    <g transform="translate(62.73 62.73) rotate(45)"><rect x="-9" y="-5" width="18" height="10" rx="5"/><rect x="-5.6" y="-2" width="11.2" height="4" rx="2"/></g>
+    <g transform="translate(50 68) rotate(0)"><rect x="-9" y="-5" width="18" height="10" rx="5"/><rect x="-5.6" y="-2" width="11.2" height="4" rx="2"/></g>
+    <g transform="translate(37.27 62.73) rotate(135)"><rect x="-9" y="-5" width="18" height="10" rx="5"/><rect x="-5.6" y="-2" width="11.2" height="4" rx="2"/></g>
+    <g transform="translate(32 50) rotate(90)"><rect x="-9" y="-5" width="18" height="10" rx="5"/><rect x="-5.6" y="-2" width="11.2" height="4" rx="2"/></g>
+    <g transform="translate(37.27 37.27) rotate(45)"><rect x="-9" y="-5" width="18" height="10" rx="5"/><rect x="-5.6" y="-2" width="11.2" height="4" rx="2"/></g>
+    <g transform="translate(50 32) rotate(0)"><rect x="-9" y="-5" width="18" height="10" rx="5"/><rect x="-5.6" y="-2" width="11.2" height="4" rx="2"/></g>
+    <g transform="translate(62.73 37.27) rotate(135)"><rect x="-9" y="-5" width="18" height="10" rx="5"/><rect x="-5.6" y="-2" width="11.2" height="4" rx="2"/></g>
+  </g>
+
+  <!-- Wordmark: serif con interletrado amplio, la voz de la casa. -->
+  <text x="605" y="290" text-anchor="middle" fill="#eceff5"
+        font-family="Georgia, 'Iowan Old Style', 'Times New Roman', serif"
+        font-size="72" letter-spacing="26">DRAVEIR</text>
+
+  <rect x="500" y="322" width="200" height="1.6" fill="url(#rule)"/>
+
+  <!-- Tagline como los eyebrows del sitio: sans, mayúsculas, muy espaciado. -->
+  <text x="606" y="366" text-anchor="middle" fill="#8b95a7"
+        font-family="'Segoe UI', system-ui, -apple-system, sans-serif"
+        font-size="19" letter-spacing="6" font-weight="500">FANTASÍA · CIENCIA FICCIÓN · TERROR CÓSMICO</text>
+</svg>
