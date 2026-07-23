@@ -4,6 +4,9 @@ dist/
 .env
 .dev.vars
 
+# Notas de trabajo (specs, planes): se quedan en la máquina del autor
+docs/
+
 # Contenido generado por el sync (build-time)
 web/src/content/sagas/
 web/src/content/phases/
