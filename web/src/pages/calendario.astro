@@ -100,8 +100,30 @@ function buildSections(caras: typeof phases) {
     .map((s, i) => ({ ...s, number: i + 1 }));
 }
 
-const { front } = splitPhases(phases);
-const sections = buildSections(front);
+const { front, back } = splitPhases(phases);
+
+// Las dos caras del calendario, misma forma y distinta promesa. El reverso sólo
+// existe si alguna fase suya tiene historias: sin contenido, la página se
+// comporta exactamente como antes de que existiera este feature — ni cara
+// trasera, ni botón.
+const faces = [
+  {
+    id: 'frente',
+    reverse: false,
+    eyebrow: 'Calendario',
+    title: 'Lo que viene',
+    lead: 'Las historias por fases, en orden de publicación.',
+    sections: buildSections(front),
+  },
+  {
+    id: 'reverso',
+    reverse: true,
+    eyebrow: 'El Reverso',
+    title: 'Lo que no estaba',
+    lead: 'Historias que salen cuando salen.',
+    sections: buildSections(back),
+  },
+].filter((f) => !f.reverse || f.sections.length > 0);
 ---
 
 <BaseLayout
@@ -109,51 +131,80 @@ const sections = buildSections(front);
   description="Todo lo que viene y todo lo que ya salió, fase por fase."
 >
   <main class="container wide" id="contenido">
-    <div class="page-head">
-      <span class="eyebrow">Calendario</span>
-      <h1>Lo que viene</h1>
-      <p class="lead">Las historias por fases, en orden de publicación.</p>
-    </div>
+    {faces.length > 1 && (
+      <button class="flip" id="flip" type="button" aria-controls="caras" aria-pressed="false">
+        {/* El dorso de una carta con el sigilo de la casa: el objeto que se
+            voltea es el propio botón, así la acción se anticipa sola. */}
+        <span class="card" aria-hidden="true">
+          <svg viewBox="0 0 34 48" fill="none" stroke="currentColor">
+            <rect x="1.5" y="1.5" width="31" height="45" rx="3" stroke-width="1.2" />
+            <rect x="5" y="5" width="24" height="38" rx="1.5" stroke-width="0.7" stroke-dasharray="2 3" />
+            <g transform="translate(17 20) scale(0.72) translate(-12 -12)">
+              <path fill="currentColor" stroke="none"
+                    d="M12 4.4c.55 4.6 2.45 6.5 7.05 7.05C14.45 12 12.55 13.9 12 18.5c-.55-4.6-2.45-6.5-7.05-7.05C9.55 10.9 11.45 9 12 4.4Z" />
+            </g>
+            <path stroke-width="0.7" stroke-linecap="round" d="M11 33h12M13.5 37h7" />
+          </svg>
+        </span>
+        <span class="flip-label" id="flip-label">voltear la carta</span>
+      </button>
+    )}
 
-    {sections.length === 0 && <p class="empty">Aún no hay fases publicadas.</p>}
+    <div id="caras">
+      {faces.map((face, i) => (
+        <div class="face" data-face={face.id} hidden={i > 0}>
+          <div class="page-head">
+            <span class="eyebrow">{face.eyebrow}</span>
+            <h1>{face.title}</h1>
+            <p class="lead">{face.lead}</p>
+          </div>
 
-    {sections.map((s) => (
-      <section class="phase">
-        <div class="phase-head">
-          <span class="phase-num">Fase {romanNumeral(s.number)}</span>
-          <h2>{s.phase.name}</h2>
-          <p class="phase-count">
-            {s.stories.length} {s.stories.length === 1 ? 'historia' : 'historias'}
-          </p>
-          {s.phase.description && <p class="phase-desc">{s.phase.description}</p>}
-        </div>
-        <ol class="timeline">
-          {s.stories.map((story) => (
-            <li class={story.readable ? 'entry' : 'entry is-soon'}>
-              <span class="node" aria-hidden="true">✦</span>
-              <span class="plate mini" style={`background:${coverGradient(story.categories)}`} aria-hidden="true">
-                <Emblem slug={story.slug} />
-              </span>
-              <div class="entry-body">
-                <h3>
-                  {story.readable
-                    ? <a href={`/novela/${story.slug}`}>{story.title}</a>
-                    : story.title}
-                </h3>
-                <p class="entry-meta">
-                  {story.isNew && <span class="new-badge">Nuevo</span>}
-                  {story.date && <span class="when">{story.date}</span>}
-                  {story.readable
-                    ? story.status && <a class="status" data-status={slugify(story.status)} href={`/estado/${slugify(story.status)}`}>{story.status}</a>
-                    : <span class="soon">Próximamente</span>}
+          {face.sections.length === 0 && <p class="empty">Aún no hay fases publicadas.</p>}
+
+          {face.sections.map((s) => (
+            <section class="phase">
+              <div class="phase-head">
+                {/* El reverso no numera sus fases: numerarlas sería prometer un
+                    orden y un ritmo, que es justo de lo que huye esta cara. */}
+                {!face.reverse && <span class="phase-num">Fase {romanNumeral(s.number)}</span>}
+                <h2>{s.phase.name}</h2>
+                <p class="phase-count">
+                  {s.stories.length} {s.stories.length === 1 ? 'historia' : 'historias'}
                 </p>
-                {story.next && <p class="entry-next">{story.next}</p>}
+                {s.phase.description && <p class="phase-desc">{s.phase.description}</p>}
               </div>
-            </li>
+              <ol class={face.reverse ? 'timeline is-reverse' : 'timeline'}>
+                {s.stories.map((story) => (
+                  <li class={story.readable ? 'entry' : 'entry is-soon'}>
+                    <span class="node" aria-hidden="true">✦</span>
+                    <span class="plate mini" style={`background:${coverGradient(story.categories)}`} aria-hidden="true">
+                      <Emblem slug={story.slug} />
+                    </span>
+                    <div class="entry-body">
+                      <h3>
+                        {story.readable
+                          ? <a href={`/novela/${story.slug}`}>{story.title}</a>
+                          : story.title}
+                      </h3>
+                      <p class="entry-meta">
+                        {story.isNew && <span class="new-badge">Nuevo</span>}
+                        {/* El reverso no lleva fechas — el estado sí: es un hecho
+                            sobre la historia, no una promesa de cuándo sale. */}
+                        {!face.reverse && story.date && <span class="when">{story.date}</span>}
+                        {story.readable
+                          ? story.status && <a class="status" data-status={slugify(story.status)} href={`/estado/${slugify(story.status)}`}>{story.status}</a>
+                          : <span class="soon">Próximamente</span>}
+                      </p>
+                      {!face.reverse && story.next && <p class="entry-next">{story.next}</p>}
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </section>
           ))}
-        </ol>
-      </section>
-    ))}
+        </div>
+      ))}
+    </div>
   </main>
 </BaseLayout>
 
@@ -258,6 +309,38 @@ const sections = buildSections(front);
     color: var(--warm);
   }
 
+  /* La carta invertida: el mismo arcano leído por su sombra. Va con :global
+     porque el SVG lo pinta <Emblem>, y los estilos de esta página están
+     scopeados — sin él, el selector no alcanzaría al emblema (es la misma razón
+     por la que `.plate .emblem` vive en global.css). */
+  .timeline.is-reverse :global(.emblem) { transform: rotate(180deg); }
+
+  /* El botón vive centrado sobre el título, no dentro de la cabecera: pertenece
+     a la página entera, no a ninguna de las dos caras. */
+  .flip {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0 auto var(--space-5);
+    padding: var(--space-2);
+    background: none;
+    border: 0;
+    cursor: pointer;
+    color: var(--brass);
+    font-family: var(--font-sans);
+    font-size: var(--step--1);
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+  }
+  .flip .card { display: block; opacity: 0.75; }
+  .flip svg { width: 34px; height: 48px; display: block; }
+  .flip-label { color: var(--text-muted); }
+  .flip:hover .card { opacity: 1; }
+  .flip:hover .flip-label { color: var(--brass); }
+
+  .face[hidden] { display: none; }
+
   @media (max-width: 600px) {
     .plate.mini { width: 44px; }
     .timeline { padding-left: var(--space-4); }
@@ -265,3 +348,32 @@ const sections = buildSections(front);
     .entry { gap: var(--space-3); }
   }
 </style>
+
+<script>
+  const btn = document.getElementById('flip');
+  const caras = document.getElementById('caras');
+
+  // Sin fases de reverso no se pinta el botón: no hay nada que voltear.
+  if (btn && caras) {
+    const label = btn.querySelector('.flip-label')!;
+    const faces = Array.from(caras.querySelectorAll<HTMLElement>('.face'));
+
+    // `hidden` saca la cara del árbol de accesibilidad y del tabulador, así que
+    // no hace falta marcarla `inert` por separado.
+    function mostrar(reverso: boolean) {
+      for (const f of faces) f.hidden = f.dataset.face !== (reverso ? 'reverso' : 'frente');
+      btn!.setAttribute('aria-pressed', String(reverso));
+      label.textContent = reverso ? 'volver' : 'voltear la carta';
+    }
+
+    btn.addEventListener('click', () => {
+      const reverso = btn.getAttribute('aria-pressed') !== 'true';
+      // El hash hace el reverso compartible y devuelve el botón Atrás.
+      history.pushState(null, '', reverso ? '#reverso' : location.pathname);
+      mostrar(reverso);
+    });
+
+    addEventListener('hashchange', () => mostrar(location.hash === '#reverso'));
+    mostrar(location.hash === '#reverso');
+  }
+</script>
