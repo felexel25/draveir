@@ -4,8 +4,12 @@ dist/
 .env
 .dev.vars
 
-# Notas de trabajo (specs, planes): se quedan en la máquina del autor
+# Notas de trabajo (specs, planes): se quedan en la máquina del autor.
+# .claude/ y .superpowers/ ya los ignora un ignore global de la máquina, pero
+# eso no protege a otra máquina ni al CI: se listan aquí también.
 docs/
+.claude/
+.superpowers/
 
 # Contenido generado por el sync (build-time)
 web/src/content/sagas/

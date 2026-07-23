@@ -61,8 +61,8 @@ const freshNovels = new Set(
 
 // Las secciones de una cara. Se llama una vez por cara: cada una descarta sus
 // fases vacías y numera las que quedan desde I.
-function buildSections(caras: typeof phases) {
-  return caras
+function buildSections(fases: typeof phases) {
+  return fases
     .map((p) => {
       const ofPhase = novels.filter((n) => n.data.phase === p.slug);
       const ordered = readingOrder(
@@ -382,10 +382,10 @@ const faces = [
     const label = btn.querySelector('.flip-label')!;
     const faces = Array.from(caras.querySelectorAll<HTMLElement>('.face'));
 
-    // `hidden` saca la cara del árbol de accesibilidad y del tabulador, así que
-    // no hace falta marcarla `inert` por separado.
     const MEDIO_GIRO = 300; // debe coincidir con la duración de al-canto/del-canto
 
+    // `hidden` saca la cara del árbol de accesibilidad y del tabulador, así que
+    // no hace falta marcarla `inert` por separado.
     function mostrar(reverso: boolean) {
       for (const f of faces) f.hidden = f.dataset.face !== (reverso ? 'reverso' : 'frente');
       btn!.setAttribute('aria-pressed', String(reverso));
@@ -399,8 +399,9 @@ const faces = [
     // setTimeout del giro en marcha sigue vivo (no se cancela) y también va a
     // llamar a mostrar(). Si leyera su `reverso` cerrado por closure, pisaría
     // ese destino nuevo con el viejo. Leyendo esta variable compartida, ambas
-    // llamadas terminan de acuerdo.
-    let objetivo = false;
+    // llamadas terminan de acuerdo. Se siembra con el hash de entrada para que
+    // un `/calendario#reverso` directo empiece de acuerdo consigo mismo.
+    let objetivo = location.hash === '#reverso';
 
     function voltear(reverso: boolean) {
       objetivo = reverso;
@@ -422,15 +423,18 @@ const faces = [
     }
 
     btn.addEventListener('click', () => {
-      const reverso = btn.getAttribute('aria-pressed') !== 'true';
-      // El hash hace el reverso compartible y devuelve el botón Atrás.
-      history.pushState(null, '', reverso ? '#reverso' : location.pathname);
+      // El destino en curso manda sobre aria-pressed: durante un giro, aria-pressed
+      // todavía dice dónde estábamos, no a dónde vamos.
+      const reverso = !objetivo;
+      // El hash hace el reverso compartible y devuelve el botón Atrás. La query
+      // sobrevive al volteo: no es asunto de esta página borrarla.
+      history.pushState(null, '', reverso ? '#reverso' : location.pathname + location.search);
       voltear(reverso);
     });
 
     addEventListener('hashchange', () => voltear(location.hash === '#reverso'));
 
     // La carga inicial no gira: no ha habido volteo que animar.
-    mostrar(location.hash === '#reverso');
+    mostrar(objetivo);
   }
 </script>

@@ -40,6 +40,9 @@ npm install
 npm run dev
 ```
 
+El contenido lo genera `npm run sync` desde Notion; sin credenciales, el
+sitio arranca vacío.
+
 | Comando | |
 | --- | --- |
 | `npm run dev` | servidor local |

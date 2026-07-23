@@ -32,7 +32,7 @@ export function parseSaga(page: NotionPage): SagaData {
   };
 }
 
-// Misma forma que una saga: nombre, slug, descripción y orden.
+// Como una saga, más la cara del calendario en la que vive.
 export function parsePhase(page: NotionPage): PhaseData {
   const p = page.properties;
   const name = plainText(p['Nombre']);
