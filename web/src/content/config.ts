@@ -17,6 +17,9 @@ const phases = defineCollection({
     name: z.string(),
     description: z.string(),
     order: z.number(),
+    // Cara del calendario. Se sincroniza desde la propiedad "Reverso" de la base
+    // Fases de Notion. Default por si el JSON viene de un sync anterior.
+    reverse: z.boolean().default(false),
   }),
 });
 

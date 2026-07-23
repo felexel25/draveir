@@ -42,6 +42,7 @@ export function parsePhase(page: NotionPage): PhaseData {
     name,
     description: plainText(p['Descripción']),
     order: p['Orden']?.number ?? 0,
+    reverse: p['Reverso']?.checkbox ?? false,
   };
 }
 
