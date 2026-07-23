@@ -20,3 +20,21 @@ web/src/content/lockedChapters/
 web/.kv-bulk.json
 web/.env
 web/.dev.vars
+
+# Variantes de entorno local (el .env.example sí se versiona: no lo cubras
+# con un patrón .env* amplio).
+.env.local
+.env.*.local
+
+# Estado local de Wrangler (Cloudflare) al probar Functions/KV en la máquina.
+.wrangler/
+
+# Editores y sistema operativo: se cuelan por máquina, no pertenecen al repo.
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs y build info sueltos.
+*.log
+*.tsbuildinfo
