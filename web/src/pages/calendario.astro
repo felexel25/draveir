@@ -3,7 +3,7 @@ import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Emblem from '../components/Emblem.astro';
 import { coverGradient } from '../lib/covers';
-import { releaseLabel, nextChapterLabel, romanNumeral, splitPhases } from '../lib/calendar';
+import { releaseLabel, nextChapterLabel, romanNumeral, splitPhases, numberSections } from '../lib/calendar';
 import { isFresh } from '../lib/fresh';
 import { getReadableNovels } from '../lib/novels';
 import { readingOrder } from '../lib/saga';
@@ -62,7 +62,7 @@ const freshNovels = new Set(
 // Las secciones de una cara. Se llama una vez por cara: cada una descarta sus
 // fases vacías y numera las que quedan desde I.
 function buildSections(fases: typeof phases) {
-  return fases
+  const sections = fases
     .map((p) => {
       const ofPhase = novels.filter((n) => n.data.phase === p.slug);
       const ordered = readingOrder(
@@ -92,12 +92,8 @@ function buildSections(fases: typeof phases) {
           };
         }),
       };
-    })
-    // Una fase sin historias no promete nada: no genera sección.
-    .filter((s) => s.stories.length > 0)
-    // El número de fase se asigna DESPUÉS de descartar las vacías: si la fase 2
-    // se queda sin historias, no debe verse un salto de "Fase I" a "Fase III".
-    .map((s, i) => ({ ...s, number: i + 1 }));
+    });
+  return numberSections(sections);
 }
 
 const { front, back } = splitPhases(phases);
@@ -132,7 +128,14 @@ const faces = [
 >
   <main class="container wide" id="contenido">
     {faces.length > 1 && (
-      <button class="flip" id="flip" type="button" aria-controls="caras" aria-pressed="false">
+      <button
+        class="flip"
+        id="flip"
+        type="button"
+        aria-controls="caras"
+        aria-pressed="false"
+        aria-label="voltear la carta: ver El Reverso del calendario"
+      >
         {/* El dorso de una carta con el sigilo de la casa: el objeto que se
             voltea es el propio botón, así la acción se anticipa sola. */}
         <span class="card" aria-hidden="true">
@@ -390,6 +393,14 @@ const faces = [
       for (const f of faces) f.hidden = f.dataset.face !== (reverso ? 'reverso' : 'frente');
       btn!.setAttribute('aria-pressed', String(reverso));
       label.textContent = reverso ? 'volver' : 'voltear la carta';
+      // El botón es lo primero dentro de <main>: quien salta el skip link llega
+      // aquí sin haber leído ningún título todavía. El nombre accesible repite el
+      // texto visible tal cual (para quien navega por voz) y le añade a dónde
+      // lleva, que el texto visible por sí solo no dice.
+      btn!.setAttribute(
+        'aria-label',
+        reverso ? 'volver: ver el calendario' : 'voltear la carta: ver El Reverso del calendario',
+      );
     }
 
     const animar = matchMedia('(prefers-reduced-motion: no-preference)');
