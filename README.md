@@ -1,15 +1,17 @@
 <div align="center">
 
-# Draveir
+<img src=".github/assets/banner.svg" alt="Draveir — Fantasía, ciencia ficción y terror cósmico" width="100%">
 
-**Fantasía, ciencia ficción y terror cósmico.**
-La casa donde se publican mis historias.
+<br>
+<br>
 
-[**draveir.com**](https://draveir.com)
+**[draveir.com](https://draveir.com)**
+
+<sub>En el lugar donde brillan las estrellas.</sub>
 
 </div>
 
----
+<br>
 
 ## Sobre el proyecto
 
@@ -72,7 +74,8 @@ personajes y mundos publicados en draveir.com son obra propia y están
 protegidos por derechos de autor. Todos los derechos reservados.
 
 <div align="center">
+<br>
 
-<sub>Escrito y construido por <b>Félix Llerena</b> · <b>Draveir</b></sub>
+<sub>✦ Escrito y construido por <b>Félix Llerena</b> · <b>Draveir</b> ✦</sub>
 
 </div>
