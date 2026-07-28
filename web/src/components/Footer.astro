@@ -14,8 +14,15 @@ const year = new Date().getFullYear();
               d="M12 4.4c.55 4.6 2.45 6.5 7.05 7.05C14.45 12 12.55 13.9 12 18.5c-.55-4.6-2.45-6.5-7.05-7.05C9.55 10.9 11.45 9 12 4.4Z" />
       </svg>
     </a>
-    <span class="fnote">En el lugar donde brillan las estrellas · {year}</span>
+    <span class="fnote">En el lugar donde brillan las estrellas</span>
   </div>
+  {/* El aviso va en su propia línea bajo la firma: la fila de arriba conserva
+      intactos sus tres extremos en ambos anchos. El año, que antes acompañaba a
+      la firma, vive ahora en el copyright para no repetirse. */}
+  <p class="flegal">
+    <span>© {year} Draveir · Todos los derechos reservados</span>
+    <a href="/legal">Aviso legal</a>
+  </p>
 </footer>
 
 <style>
@@ -54,6 +61,28 @@ const year = new Date().getFullYear();
     }
     .fbrand { justify-self: start; }
     .fnote { justify-self: end; }
+  }
+
+  /* Estrecho: copyright y enlace apilados y centrados, cada uno en su línea, sin
+     que ninguno se parta a media frase. */
+  .flegal {
+    max-width: var(--page);
+    margin: var(--space-3) auto 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-1);
+    text-align: center;
+    text-wrap: balance;
+  }
+  .flegal a { color: inherit; }
+  .flegal a:hover { color: var(--accent); }
+
+  /* Ancho: los dos en una línea, separados por el mismo punto medio que usa el
+     resto del pie. */
+  @media (min-width: 40rem) {
+    .flegal { flex-direction: row; justify-content: center; gap: 0; }
+    .flegal a::before { content: '·'; margin: 0 0.4em; color: var(--text-muted); }
   }
 
   .finvoke {
