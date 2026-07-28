@@ -1,0 +1,148 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Breadcrumb from '../components/Breadcrumb.astro';
+
+const year = new Date().getFullYear();
+---
+
+<BaseLayout
+  title="Aviso legal — Draveir"
+  description="Aviso legal de draveir.com: titularidad, propiedad intelectual de las obras y tratamiento de datos."
+>
+  <main class="container legal" id="contenido">
+    <Breadcrumb items={[{ label: 'Aviso legal' }]} />
+
+    <header class="legal-head">
+      <span class="legal-sigil" aria-hidden="true">✦</span>
+      <h1>Aviso legal</h1>
+      <p class="legal-sub">Derechos de autor y protección de datos</p>
+      {/* Se actualiza a mano al tocar el texto: una fecha automática mentiría
+          sobre cuándo cambió el documento. */}
+      <p class="legal-date">Última actualización: 27 de julio de 2026</p>
+    </header>
+
+    <div class="legal-body">
+      <section>
+        <h2>1. Titularidad del sitio</h2>
+        <p>
+          El presente sitio web, accesible en el dominio draveir.com, es titularidad
+          de Félix Llerena, autor domiciliado en la República de Panamá, que publica
+          su obra literaria bajo el seudónimo Draveir. Se trata de un sitio de
+          carácter personal y divulgativo, sin actividad comercial: no comercializa
+          bienes ni servicios, no gestiona cuentas de usuario y no realiza
+          intermediación alguna en favor de terceros.
+        </p>
+      </section>
+
+      <section>
+        <h2>2. Propiedad intelectual</h2>
+        <p>
+          La totalidad de los contenidos publicados en este sitio —capítulos, obras
+          completas, argumentos, personajes, denominaciones y topónimos de ficción,
+          emblemas, elementos gráficos y textos de la propia web— constituye obra
+          original de Félix Llerena y se encuentra protegida por la Ley 64 de 10 de
+          octubre de 2012, sobre Derecho de Autor y Derechos Conexos de la República
+          de Panamá, así como por los tratados internacionales en la materia. Dicha
+          protección se reconoce por el solo hecho de la creación de la obra, sin
+          sujeción a formalidad alguna. © {year} Félix Llerena. Todos los derechos
+          reservados.
+        </p>
+        <p>
+          Se autoriza la lectura del contenido, la cita de fragmentos breves con
+          indicación de la fuente y el autor conforme al derecho de cita, y el
+          enlace a cualquier página de este sitio.
+        </p>
+        <p>
+          Queda expresamente prohibida, sin autorización previa y por escrito del
+          titular, la reproducción total o parcial de las obras, su distribución,
+          comunicación pública en otras plataformas, traducción, transformación o
+          adaptación a cualquier formato, su explotación comercial, así como su
+          extracción automatizada o su utilización para el entrenamiento de sistemas
+          de inteligencia artificial.
+        </p>
+      </section>
+
+      <section>
+        <h2>3. Protección de datos personales</h2>
+        <p>
+          Este sitio no recaba datos personales de sus visitantes. No dispone de
+          formularios de contacto ni de suscripción, no emplea cookies, no incorpora
+          herramientas de analítica ni scripts de terceros, y no transmite
+          información sobre la navegación a ningún destinatario.
+        </p>
+        <p>
+          La única información conservada son las preferencias de lectura del
+          usuario —el tema visual seleccionado, el progreso de lectura, las obras
+          marcadas como favoritas y la invocación diaria—, que permanecen
+          almacenadas en su propio navegador con finalidades estrictamente
+          funcionales y no se transmiten al titular ni a terceros. El usuario puede
+          suprimirlas en cualquier momento desde la configuración de su navegador,
+          con la única consecuencia de perder dichas preferencias.
+        </p>
+        <p>
+          En consecuencia, no se realiza tratamiento de datos personales en el
+          sentido de la Ley 81 de 26 de marzo de 2019, sobre Protección de Datos
+          Personales de la República de Panamá, ni del Reglamento (UE) 2016/679
+          (RGPD).
+        </p>
+      </section>
+
+      <section>
+        <h2>4. Alojamiento</h2>
+        <p>
+          Como todo servidor web, la infraestructura que aloja este sitio registra
+          las solicitudes que recibe con la finalidad exclusiva de entregar el
+          contenido solicitado, garantizar la seguridad del servicio y prevenir usos
+          abusivos. Dicho tratamiento corresponde al proveedor de alojamiento en su
+          condición de encargado y se rige por la política de privacidad de este. El
+          titular del sitio no accede a esos registros ni elabora perfiles a partir
+          de ellos.
+        </p>
+      </section>
+
+      <section>
+        <h2>5. Modificación del presente aviso</h2>
+        <p>
+          El titular se reserva la facultad de modificar este aviso cuando resulte
+          necesario. En particular, si en el futuro se incorporasen funcionalidades
+          que impliquen la recogida de datos personales —boletín de novedades,
+          comentarios o métricas de lectura—, este texto será actualizado con
+          carácter previo a su puesta en funcionamiento.
+        </p>
+      </section>
+    </div>
+  </main>
+</BaseLayout>
+
+<style>
+  /* Mismo esqueleto que /sobre-mi: cabecera centrada con el sigilo y un cuerpo
+     a medida de lectura. Un aviso legal no necesita diseño propio. */
+  .legal-head { text-align: center; margin: var(--space-5) 0 var(--space-6); }
+  .legal-sigil {
+    display: block;
+    color: var(--brass);
+    font-size: 1.6rem;
+    margin: 0 0 var(--space-3);
+  }
+  .legal-head h1 { margin: 0; }
+  .legal-sub {
+    font-family: var(--font-sans);
+    color: var(--text-muted);
+    margin: var(--space-2) 0 0;
+    letter-spacing: 0.02em;
+  }
+  .legal-date {
+    font-family: var(--font-sans);
+    font-size: var(--step--1);
+    color: var(--text-muted);
+    margin: var(--space-2) 0 0;
+  }
+  .legal-body { font-size: var(--step-0); line-height: 1.8; }
+  .legal-body section + section { margin-top: var(--space-6); }
+  .legal-body h2 {
+    font-size: var(--step-1);
+    margin: 0 0 var(--space-3);
+  }
+  .legal-body p { margin: 0 0 var(--space-4); text-wrap: pretty; }
+  .legal-body p:last-child { margin-bottom: 0; }
+</style>
