@@ -8,16 +8,20 @@ describe('isFresh', () => {
     expect(isFresh('2026-07-17T07:00:00.000-05:00', now)).toBe(true);
   });
 
-  it('publicado hace 2 días es nuevo', () => {
-    expect(isFresh('2026-07-15T12:00:00.000-05:00', now)).toBe(true);
+  it('el capítulo de ayer 7 PM sigue siendo nuevo al día siguiente', () => {
+    expect(isFresh('2026-07-16T19:00:00.000-05:00', now)).toBe(true);
   });
 
-  it('publicado hace más de 3 días ya no es nuevo', () => {
-    expect(isFresh('2026-07-13T11:00:00.000-05:00', now)).toBe(false);
+  it('a 35 horas todavía es nuevo', () => {
+    expect(isFresh('2026-07-16T01:00:00.000-05:00', now)).toBe(true);
   });
 
-  it('el borde exacto de 3 días ya no es nuevo', () => {
-    expect(isFresh('2026-07-14T12:00:00.000-05:00', now)).toBe(false);
+  it('el borde exacto de día y medio ya no es nuevo', () => {
+    expect(isFresh('2026-07-16T00:00:00.000-05:00', now)).toBe(false);
+  });
+
+  it('publicado hace 2 días ya no es nuevo', () => {
+    expect(isFresh('2026-07-15T12:00:00.000-05:00', now)).toBe(false);
   });
 
   it('una fecha futura no es nueva', () => {

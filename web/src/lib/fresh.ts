@@ -4,7 +4,7 @@
 // no es nuevo: nunca se inventa frescura.
 export const DIA_MS = 24 * 60 * 60 * 1000;
 
-export function isFresh(publishedAt: string, now: Date, days = 3): boolean {
+export function isFresh(publishedAt: string, now: Date, days = 1.5): boolean {
   const t = Date.parse(publishedAt);
   if (Number.isNaN(t)) return false;
   const edad = now.getTime() - t;

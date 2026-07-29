@@ -13,7 +13,7 @@ const novels = (await getReadableNovels()).sort((a, b) =>
 );
 const chapters = await getCollection('chapters');
 
-// Recién salido: los capítulos publicados hace menos de 3 días, del más nuevo al
+// Recién salido: los capítulos publicados hace menos de día y medio, del más nuevo al
 // menos. Si no hay ninguno, la sección no aparece (nada que anunciar).
 const now = new Date();
 const novelBySlug = new Map(novels.map((n) => [n.data.slug, n.data]));

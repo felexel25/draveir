@@ -21,7 +21,7 @@ const { slug, title, synopsis, status, format, categories, searchText, hidden } 
 const gradient = coverGradient(categories);
 const primaryCategory = categories[0];
 
-// ¿Tiene algún capítulo publicado hace menos de 3 días? La card lo sabe sola:
+// ¿Tiene algún capítulo publicado hace menos de día y medio? La card lo sabe sola:
 // getCollection está memoizado en el build, así que preguntarlo por card es barato.
 const now = new Date();
 const isNew = (await getCollection('chapters')).some(
