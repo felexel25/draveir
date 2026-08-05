@@ -300,7 +300,7 @@ const server = createServer(async (req, res) => {
     // que el Studio herede cualquier cambio del emblema sin tocar nada aquí.
     if (req.method === 'GET' && path === '/favicon.svg') {
       const svg = await readFile(resolve(WEB_DIR, 'public/favicon.svg'));
-      res.writeHead(200, { 'Content-Type': 'image/svg+xml; charset=utf-8' });
+      res.writeHead(200, { 'Content-Type': 'image/svg+xml; charset=utf-8', 'Cache-Control': 'no-cache' });
       return res.end(svg);
     }
     if (path === '/api/ping') { lastPing = Date.now(); return sendJson(res, 200, { ok: true }); }
