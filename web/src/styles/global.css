@@ -51,14 +51,13 @@ a:hover { color: var(--accent-strong); }
   border-radius: var(--radius-sm);
 }
 
-.container { max-width: var(--measure); margin-inline: auto; padding: var(--space-5) var(--space-3); }
-.container.wide { max-width: var(--page); }
 /* El <main> es flex-item del body (columna) y .container lleva margin-inline:auto.
    En el eje transversal los márgenes auto ganan a align-items:stretch, así que el
-   contenedor se ENCOGE a su contenido en vez de estirarse a --measure: un capítulo
-   bloqueado (solo la tarjeta, sin artículo) quedaba más angosto que uno publicado.
-   width:100% le devuelve el ancho de lectura completo sin depender del contenido. */
-.reading { width: 100%; }
+   contenedor se ENCOGE a su contenido en vez de estirarse a su max-width. Sin
+   width:100% eso encoge el buscador cuando no hay resultados, un capítulo bloqueado
+   o una categoría con pocas novelas. width:100% fija el ancho sin depender del contenido. */
+.container { width: 100%; max-width: var(--measure); margin-inline: auto; padding: var(--space-5) var(--space-3); }
+.container.wide { max-width: var(--page); }
 
 /* ---- eyebrow / labels ---- */
 .eyebrow {
