@@ -16,6 +16,7 @@ const WEB_DIR = resolve(__dirname, '../..');
 const NOVELS_DB = 'c03f5b38-513f-4c0f-8f91-1b69cad31673';
 const CHAPTERS_DB = '4ac20247-41d9-46b7-b9ca-cae507c3eaf2';
 const SAGAS_DB = '59e14fc6-5381-407b-99c2-c26d4e532a89';
+const PHASES_DB = '84921638-4c16-43b6-bf1f-4daa4e030ee5';
 const PORT = 4477;
 const REPO = 'felexel25/draveir';
 const WORKFLOW = 'Sincronización programada';
@@ -59,8 +60,8 @@ function optionalNumber(v, campo) {
 }
 
 export function novelProps({
-  title, slug, synopsis, estado, categorias, etiquetas, publicada, destacada, oculta,
-  saga, ordenSaga, relacionadas, pageId,
+  title, slug, synopsis, estado, formato, categorias, etiquetas, publicada, destacada, oculta,
+  saga, ordenSaga, fase, ordenFase, ventana, relacionadas, pageId,
 }) {
   if (!title || !title.trim()) throw new Error('Falta el título de la novela.');
   const orden = optionalNumber(ordenSaga, 'El orden en la saga');
@@ -71,6 +72,8 @@ export function novelProps({
     'Sinopsis': richText(synopsis),
     'Slug': richText(slug),
     'Estado': { select: estado && NOVEL_ESTADOS.includes(estado) ? { name: estado } : null },
+    // Formato: las opciones vivas las sirve /api/options; aquí pasamos el nombre tal cual.
+    'Formato': { select: formato ? { name: formato } : null },
     'Categorías': { multi_select: (Array.isArray(categorias) ? categorias : []).map((name) => ({ name })) },
     'Etiquetas': { multi_select: (Array.isArray(etiquetas) ? etiquetas : []).map((name) => ({ name })) },
     'Publicada': { checkbox: !!publicada },
@@ -81,17 +84,34 @@ export function novelProps({
     // Siempre presentes: al editar, quitar la saga aquí debe limpiarla en Notion.
     'Saga': { relation: saga ? [{ id: saga }] : [] },
     'Orden en saga': { number: orden },
+    // Fase: eje del calendario (relación), paralelo a la saga.
+    'Fase': { relation: fase ? [{ id: fase }] : [] },
+    'Orden en fase': { number: optionalNumber(ordenFase, 'El orden en la fase') },
+    'Ventana de lanzamiento': richText(ventana),
     'Relacionadas': { relation: rel.map((id) => ({ id })) },
   };
 }
 
-export function sagaProps({ nombre, slug, descripcion, orden }) {
+export function sagaProps({ nombre, slug, descripcion, orden, universo }) {
   if (!nombre || !nombre.trim()) throw new Error('Falta el nombre de la saga.');
   return {
     'Nombre': { title: [{ text: { content: nombre.trim() } }] },
     'Slug': richText(slug),
     'Descripción': richText(descripcion),
     'Orden': { number: optionalNumber(orden, 'El orden de la saga') ?? 0 },
+    // Universo: opciones vivas en /api/options; se pasa el nombre tal cual.
+    'Universo': { select: universo ? { name: universo } : null },
+  };
+}
+
+// Una fase es como una saga sin universo: el eje del calendario.
+export function phaseProps({ nombre, slug, descripcion, orden }) {
+  if (!nombre || !nombre.trim()) throw new Error('Falta el nombre de la fase.');
+  return {
+    'Nombre': { title: [{ text: { content: nombre.trim() } }] },
+    'Slug': richText(slug),
+    'Descripción': richText(descripcion),
+    'Orden': { number: optionalNumber(orden, 'El orden de la fase') ?? 0 },
   };
 }
 
@@ -121,18 +141,35 @@ if (process.argv.includes('--selfcheck')) {
   ok(novelProps({ title: 'x', pageId: 'yo', relacionadas: ['yo', 'otra'] })['Relacionadas'].relation.length === 1, 'no se relaciona consigo misma');
   ok(novelProps({ title: 'x', etiquetas: ['Magia'] })['Etiquetas'].multi_select[0].name === 'Magia', 'etiqueta');
   ok(novelProps({ title: 'x' })['Etiquetas'].multi_select.length === 0, 'sin etiquetas limpia');
+  const fp = novelProps({ title: 'x', formato: 'Novela', fase: 'f1', ordenFase: '30', ventana: 'Finales de 2027' });
+  ok(fp['Formato'].select.name === 'Novela', 'formato');
+  ok(fp['Fase'].relation[0].id === 'f1', 'fase');
+  ok(fp['Orden en fase'].number === 30, 'orden en fase numérico');
+  ok(fp['Ventana de lanzamiento'].rich_text[0].text.content === 'Finales de 2027', 'ventana');
+  ok(novelProps({ title: 'x' })['Formato'].select === null, 'sin formato limpia');
+  ok(novelProps({ title: 'x' })['Fase'].relation.length === 0, 'sin fase limpia');
+  ok(novelProps({ title: 'x' })['Orden en fase'].number === null, 'sin orden en fase limpia');
   let badOrden = false;
   try { novelProps({ title: 'x', ordenSaga: 'ocho' }); } catch { badOrden = true; }
   ok(badOrden, 'orden no numérico debe fallar');
-  const sp = sagaProps({ nombre: ' Stasis ', slug: 'stasis', descripcion: 'Un mundo.', orden: '10' });
+  const sp = sagaProps({ nombre: ' Stasis ', slug: 'stasis', descripcion: 'Un mundo.', orden: '10', universo: 'Alterone' });
   ok(sp['Nombre'].title[0].text.content === 'Stasis', 'nombre de saga recortado');
   ok(sp['Descripción'].rich_text[0].text.content === 'Un mundo.', 'descripción de saga');
   ok(sp['Orden'].number === 10, 'orden de saga numérico');
+  ok(sp['Universo'].select.name === 'Alterone', 'universo de saga');
   ok(sagaProps({ nombre: 'x' })['Orden'].number === 0, 'saga sin orden → 0');
+  ok(sagaProps({ nombre: 'x' })['Universo'].select === null, 'saga sin universo limpia');
   ok(sagaProps({ nombre: 'x' })['Slug'].rich_text.length === 0, 'saga sin slug limpia');
   let badSaga = false;
   try { sagaProps({ nombre: '  ' }); } catch { badSaga = true; }
   ok(badSaga, 'saga sin nombre debe fallar');
+  const php = phaseProps({ nombre: ' Fase 1 ', slug: 'fase-1', descripcion: 'Una fase.', orden: '10' });
+  ok(php['Nombre'].title[0].text.content === 'Fase 1', 'nombre de fase recortado');
+  ok(php['Orden'].number === 10, 'orden de fase numérico');
+  ok(phaseProps({ nombre: 'x' })['Orden'].number === 0, 'fase sin orden → 0');
+  let badPhase = false;
+  try { phaseProps({ nombre: '  ' }); } catch { badPhase = true; }
+  ok(badPhase, 'fase sin nombre debe fallar');
   console.log('selfcheck OK');
   process.exit(0);
 }
@@ -173,6 +210,7 @@ async function getNovel(id) {
     slug: text(P['Slug']),
     synopsis: text(P['Sinopsis']),
     estado: P['Estado']?.select?.name ?? '',
+    formato: P['Formato']?.select?.name ?? '',
     categorias: (P['Categorías']?.multi_select ?? []).map((o) => o.name),
     etiquetas: (P['Etiquetas']?.multi_select ?? []).map((o) => o.name),
     publicada: !!P['Publicada']?.checkbox,
@@ -180,8 +218,35 @@ async function getNovel(id) {
     oculta: !!P['Oculta']?.checkbox,
     saga: P['Saga']?.relation?.[0]?.id ?? '',
     ordenSaga: P['Orden en saga']?.number ?? '',
+    fase: P['Fase']?.relation?.[0]?.id ?? '',
+    ordenFase: P['Orden en fase']?.number ?? '',
+    ventana: text(P['Ventana de lanzamiento']),
     relacionadas: (P['Relacionadas']?.relation ?? []).map((r) => r.id),
   };
+}
+
+// Opciones vivas del esquema de Notion: así las categorías/etiquetas/formatos
+// nunca se desfasan respecto a Notion (no se re-escriben a mano aquí).
+async function listOptions() {
+  const n = await getNotion();
+  const [nov, sag] = await Promise.all([
+    n.databases.retrieve({ database_id: NOVELS_DB }),
+    n.databases.retrieve({ database_id: SAGAS_DB }),
+  ]);
+  const names = (prop) => (prop?.multi_select?.options ?? prop?.select?.options ?? []).map((o) => o.name);
+  return {
+    categorias: names(nov.properties['Categorías']),
+    etiquetas: names(nov.properties['Etiquetas']),
+    formatos: names(nov.properties['Formato']),
+    estados: names(nov.properties['Estado']),
+    universos: names(sag.properties['Universo']),
+  };
+}
+
+async function listPhases() {
+  const n = await getNotion();
+  const res = await n.databases.query({ database_id: PHASES_DB, sorts: [{ property: 'Orden', direction: 'ascending' }] });
+  return res.results.map((p) => ({ id: p.id, title: text(p.properties['Nombre']) || '(sin nombre)' }));
 }
 
 async function getSaga(id) {
@@ -194,7 +259,30 @@ async function getSaga(id) {
     slug: text(P['Slug']),
     descripcion: text(P['Descripción']),
     orden: P['Orden']?.number ?? '',
+    universo: P['Universo']?.select?.name ?? '',
   };
+}
+
+async function getPhase(id) {
+  const n = await getNotion();
+  const p = await n.pages.retrieve({ page_id: id });
+  const P = p.properties;
+  return {
+    id: p.id,
+    nombre: text(P['Nombre']),
+    slug: text(P['Slug']),
+    descripcion: text(P['Descripción']),
+    orden: P['Orden']?.number ?? '',
+  };
+}
+
+async function upsertPhase(body) {
+  const n = await getNotion();
+  const properties = phaseProps(body);
+  const page = body.pageId
+    ? await n.pages.update({ page_id: body.pageId, properties })
+    : await n.pages.create({ parent: { database_id: PHASES_DB }, properties });
+  return { url: page.url, updated: !!body.pageId };
 }
 
 async function upsertSaga(body) {
@@ -312,6 +400,10 @@ const server = createServer(async (req, res) => {
     }
     if (req.method === 'GET' && path === '/api/novels') return sendJson(res, 200, { novels: await listNovels() });
     if (req.method === 'GET' && path === '/api/sagas') return sendJson(res, 200, { sagas: await listSagas() });
+    if (req.method === 'GET' && path === '/api/phases') return sendJson(res, 200, { phases: await listPhases() });
+    if (req.method === 'GET' && path === '/api/phase') return sendJson(res, 200, await getPhase(url.searchParams.get('id')));
+    if (req.method === 'POST' && path === '/api/phase') return sendJson(res, 200, await upsertPhase(await readBody(req)));
+    if (req.method === 'GET' && path === '/api/options') return sendJson(res, 200, await listOptions());
     if (req.method === 'GET' && path === '/api/saga') return sendJson(res, 200, await getSaga(url.searchParams.get('id')));
     if (req.method === 'POST' && path === '/api/saga') return sendJson(res, 200, await upsertSaga(await readBody(req)));
     if (req.method === 'GET' && path === '/api/novel') return sendJson(res, 200, await getNovel(url.searchParams.get('id')));
