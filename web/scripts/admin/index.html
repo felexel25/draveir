@@ -121,8 +121,12 @@
         <input type="text" id="nv-slug" placeholder="se genera del título si lo dejas vacío">
         <label for="nv-syn">Sinopsis</label>
         <textarea id="nv-syn" placeholder="Una línea o dos que enganchen…"></textarea>
-        <label for="nv-estado">Estado</label>
-        <select id="nv-estado"><option>En progreso</option><option>Completa</option><option>Pausada</option></select>
+        <div class="row">
+          <div><label for="nv-estado">Estado</label>
+            <select id="nv-estado"><option>En progreso</option><option>Completa</option><option>Pausada</option></select></div>
+          <div><label for="nv-formato">Formato</label>
+            <select id="nv-formato"><option value="">(sin formato)</option></select></div>
+        </div>
         <label>Categorías</label>
         <div class="chips" id="nv-cats"></div>
         <label>Etiquetas</label>
@@ -138,6 +142,18 @@
           </div>
         </div>
         <p class="hint">Numera de 10 en 10: así puedes intercalar una precuela (5) o una historia entre medio (15) sin renumerar las demás.</p>
+        <div class="row">
+          <div style="flex:2">
+            <label for="nv-fase">Fase <span style="color:var(--muted)">· calendario, opcional</span></label>
+            <select id="nv-fase"><option value="">(sin fase)</option></select>
+          </div>
+          <div>
+            <label for="nv-ordenfase">Orden en la fase</label>
+            <input type="number" id="nv-ordenfase" step="1" placeholder="10">
+          </div>
+        </div>
+        <label for="nv-ventana">Ventana de lanzamiento <span style="color:var(--muted)">· opcional</span></label>
+        <input type="text" id="nv-ventana" placeholder="Finales de 2027, Por anunciar…">
         <label>Se cruza con <span style="color:var(--muted)">· opcional</span></label>
         <div class="chips" id="nv-rel"></div>
         <p class="hint">Basta marcarlo aquí: el lector verá el cruce desde las dos novelas.</p>
@@ -172,11 +188,40 @@
           <input type="number" id="sg-orden" step="1" placeholder="10">
         </div>
       </div>
+      <label for="sg-universo">Universo <span style="color:var(--muted)">· agrupa varias sagas, opcional</span></label>
+      <select id="sg-universo"><option value="">(sin universo)</option></select>
       <label for="sg-desc">Descripción del mundo</label>
       <textarea id="sg-desc" placeholder="Lo que ve el lector al terminar una novela y querer más…"></textarea>
       <div class="editbar" id="sg-editbar"><span>Editando saga</span><a id="sg-cancel">cancelar</a></div>
       <button class="btn primary submit" type="submit" id="sg-submit">Crear saga</button>
       <div class="result" id="sg-result"></div>
+    </form>
+  </section>
+
+  <!-- FASE -->
+  <section class="card">
+    <h2 id="ph-h2">Nueva fase</h2>
+    <p class="hint">Tabla <strong>Fases</strong>. El eje del calendario: agrupa historias por momento de publicación, no por mundo.</p>
+    <form id="phaseForm">
+      <label for="ph-pick">Editar una existente <span style="color:var(--muted)">· o déjalo en blanco para crear</span></label>
+      <select id="ph-pick"><option value="">(nueva fase)</option></select>
+      <label for="ph-nombre">Nombre</label>
+      <input type="text" id="ph-nombre" required placeholder="El Primer Contacto">
+      <div class="row">
+        <div style="flex:2">
+          <label for="ph-slug">Slug <span style="color:var(--muted)">· opcional</span></label>
+          <input type="text" id="ph-slug" placeholder="se genera del nombre si lo dejas vacío">
+        </div>
+        <div>
+          <label for="ph-orden">Orden</label>
+          <input type="number" id="ph-orden" step="1" placeholder="10">
+        </div>
+      </div>
+      <label for="ph-desc">Descripción de la fase</label>
+      <textarea id="ph-desc" placeholder="Qué va a vivir el lector en esta fase y por qué está agrupada así…"></textarea>
+      <div class="editbar" id="ph-editbar"><span>Editando fase</span><a id="ph-cancel">cancelar</a></div>
+      <button class="btn primary submit" type="submit" id="ph-submit">Crear fase</button>
+      <div class="result" id="ph-result"></div>
     </form>
   </section>
 
@@ -206,10 +251,8 @@
 </div>
 
 <script>
-const CATS = ['Fantasía','Romance','Ciencia ficción','Aventura','Misterio','Terror','Acción'];
-const TAGS = ['Magia','Dragones','Academia'];
 const $ = (id) => document.getElementById(id);
-let editingChapterId = null, editingNovelId = null, editingSagaId = null;
+let editingChapterId = null, editingNovelId = null, editingSagaId = null, editingPhaseId = null;
 
 // Heartbeat: mantiene vivo el servidor mientras la pestaña esté abierta;
 // al cerrarla, un beacon lo apaga (~4 s). Un refresco no lo apaga.
@@ -228,10 +271,37 @@ async function postJSON(url, body){
   return d;
 }
 
-$('nv-cats').innerHTML = CATS.map(c => `<label><input type="checkbox" value="${c}"><span>${c}</span></label>`).join('');
-$('nv-tags').innerHTML = TAGS.map(t => `<label><input type="checkbox" value="${t}"><span>${t}</span></label>`).join('');
-
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+// Categorías, etiquetas, formatos y estados salen del esquema vivo de Notion:
+// añadir una opción allí la refleja aquí sin tocar código.
+async function loadOptions(){
+  try{
+    const o = await getJSON('/api/options');
+    const chip = (v) => `<label><input type="checkbox" value="${esc(v)}"><span>${esc(v)}</span></label>`;
+    $('nv-cats').innerHTML = (o.categorias||[]).map(chip).join('');
+    $('nv-tags').innerHTML = (o.etiquetas||[]).map(chip).join('');
+    $('nv-formato').innerHTML = '<option value="">(sin formato)</option>' + (o.formatos||[]).map(f => `<option value="${esc(f)}">${esc(f)}</option>`).join('');
+    if(o.estados?.length) $('nv-estado').innerHTML = o.estados.map(s => `<option>${esc(s)}</option>`).join('');
+    const uni = $('sg-universo').value;
+    $('sg-universo').innerHTML = '<option value="">(sin universo)</option>' + (o.universos||[]).map(u => `<option value="${esc(u)}">${esc(u)}</option>`).join('');
+    $('sg-universo').value = uni;
+  }catch(e){ /* los chips quedan vacíos; el error real aparece al guardar */ }
+}
+
+async function loadPhases(){
+  try{
+    const {phases} = await getJSON('/api/phases');
+    const opt = '<option value="">(sin fase)</option>' + phases.map(p => `<option value="${p.id}">${esc(p.title)}</option>`).join('');
+    const sel = $('nv-fase').value;
+    $('nv-fase').innerHTML = opt;
+    $('nv-fase').value = sel;
+    // El mismo listado alimenta el selector de "editar fase" del card de Fases.
+    const pick = $('ph-pick').value;
+    $('ph-pick').innerHTML = '<option value="">(nueva fase)</option>' + phases.map(p => `<option value="${p.id}">${esc(p.title)}</option>`).join('');
+    $('ph-pick').value = pick;
+  }catch(e){ /* se queda "(sin fase)" */ }
+}
 
 async function loadNovelSelectors(){
   try{
@@ -259,6 +329,8 @@ async function loadSagas(){
 
 loadNovelSelectors();
 loadSagas();
+loadOptions();
+loadPhases();
 
 // ── Estado → fecha ──
 $('ch-estado').addEventListener('change', () => {
@@ -322,6 +394,7 @@ $('novForm').addEventListener('submit', async (e) => {
       slug: $('nv-slug').value || null,
       synopsis: $('nv-syn').value || null,
       estado: $('nv-estado').value,
+      formato: $('nv-formato').value || null,
       categorias: [...document.querySelectorAll('#nv-cats input:checked')].map(i => i.value),
       etiquetas: [...document.querySelectorAll('#nv-tags input:checked')].map(i => i.value),
       publicada: $('nv-pub').checked,
@@ -329,6 +402,9 @@ $('novForm').addEventListener('submit', async (e) => {
       oculta: $('nv-oculta').checked,
       saga: $('nv-saga').value || null,
       ordenSaga: $('nv-orden').value,
+      fase: $('nv-fase').value || null,
+      ordenFase: $('nv-ordenfase').value,
+      ventana: $('nv-ventana').value || null,
       relacionadas: [...document.querySelectorAll('#nv-rel input:checked')].map(i => i.value),
     };
     const {url, updated} = await postJSON('/api/novel', body);
@@ -357,6 +433,7 @@ $('sg-pick').addEventListener('change', async () => {
     editingSagaId = s.id;
     $('sg-nombre').value = s.nombre; $('sg-slug').value = s.slug;
     $('sg-desc').value = s.descripcion; $('sg-orden').value = s.orden ?? '';
+    $('sg-universo').value = s.universo || '';
     $('sg-pick').value = id; // reset() lo habría limpiado; aquí no llamamos a reset
     $('sg-h2').textContent = 'Editar saga';
     $('sg-submit').textContent = 'Guardar cambios';
@@ -374,11 +451,55 @@ $('sagaForm').addEventListener('submit', async (e) => {
       slug: $('sg-slug').value || null,
       descripcion: $('sg-desc').value || null,
       orden: $('sg-orden').value,
+      universo: $('sg-universo').value || null,
     });
     showResult($('sg-result'), 'ok', `${updated?'Saga actualizada':'Saga creada'}. <a href="${url}" target="_blank" rel="noopener">Abrir en Notion →</a>`);
     resetSagaForm();
     await loadSagas();
   }catch(err){ showResult($('sg-result'), 'err', err.message); }
+  finally{ btn.disabled = false; }
+});
+
+// ── Crear / editar fase ──
+function resetPhaseForm(){
+  editingPhaseId = null;
+  $('ph-h2').textContent = 'Nueva fase';
+  $('ph-submit').textContent = 'Crear fase';
+  $('ph-editbar').classList.remove('show');
+  $('phaseForm').reset();
+}
+$('ph-cancel').addEventListener('click', () => { resetPhaseForm(); $('ph-result').className='result'; });
+
+$('ph-pick').addEventListener('change', async () => {
+  const id = $('ph-pick').value;
+  if(!id){ resetPhaseForm(); return; }
+  try{
+    const p = await getJSON('/api/phase?id=' + encodeURIComponent(id));
+    editingPhaseId = p.id;
+    $('ph-nombre').value = p.nombre; $('ph-slug').value = p.slug;
+    $('ph-desc').value = p.descripcion; $('ph-orden').value = p.orden ?? '';
+    $('ph-pick').value = id; // reset() lo habría limpiado; aquí no llamamos a reset
+    $('ph-h2').textContent = 'Editar fase';
+    $('ph-submit').textContent = 'Guardar cambios';
+    $('ph-editbar').classList.add('show');
+  }catch(e){ showResult($('ph-result'),'err', e.message); }
+});
+
+$('phaseForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = e.submitter; btn.disabled = true;
+  try{
+    const {url, updated} = await postJSON('/api/phase', {
+      pageId: editingPhaseId || undefined,
+      nombre: $('ph-nombre').value,
+      slug: $('ph-slug').value || null,
+      descripcion: $('ph-desc').value || null,
+      orden: $('ph-orden').value,
+    });
+    showResult($('ph-result'), 'ok', `${updated?'Fase actualizada':'Fase creada'}. <a href="${url}" target="_blank" rel="noopener">Abrir en Notion →</a>`);
+    resetPhaseForm();
+    await loadPhases();
+  }catch(err){ showResult($('ph-result'), 'err', err.message); }
   finally{ btn.disabled = false; }
 });
 
@@ -433,12 +554,16 @@ $('mg-edit-novel').addEventListener('click', async () => {
     editingNovelId = n.id;
     $('nv-title').value = n.title; $('nv-slug').value = n.slug; $('nv-syn').value = n.synopsis;
     if(n.estado) $('nv-estado').value = n.estado;
+    $('nv-formato').value = n.formato || '';
     document.querySelectorAll('#nv-cats input').forEach(i => i.checked = n.categorias.includes(i.value));
     document.querySelectorAll('#nv-tags input').forEach(i => i.checked = n.etiquetas.includes(i.value));
     $('nv-pub').checked = n.publicada; $('nv-dest').checked = n.destacada;
     $('nv-oculta').checked = n.oculta;
     $('nv-saga').value = n.saga || '';
     $('nv-orden').value = n.ordenSaga ?? '';
+    $('nv-fase').value = n.fase || '';
+    $('nv-ordenfase').value = n.ordenFase ?? '';
+    $('nv-ventana').value = n.ventana || '';
     // Una novela no se cruza consigo misma: se oculta de la lista.
     document.querySelectorAll('#nv-rel label').forEach(l => {
       const mine = l.dataset.id === n.id;
